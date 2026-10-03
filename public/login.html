@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng nhập | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+  </head>
+  <body>
+    <main class="page-container">
+      <section class="auth-card" aria-labelledby="page-title">
+        <h1 id="page-title">Đăng nhập</h1>
+        <p class="muted">Đăng nhập để quản lý lịch đặt sân của bạn.</p>
+        <form id="login-form">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+
+          <label for="password">Mật khẩu</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+          <p class="form-message" role="status" aria-live="polite"></p>
+          <button class="button button-primary" type="submit">Đăng nhập</button>
+        </form>
+        <p class="auth-switch">Chưa có tài khoản? <a href="/register.html">Đăng ký</a></p>
+      </section>
+    </main>
+  </body>
+</html>

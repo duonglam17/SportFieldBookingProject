@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng ký | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+  </head>
+  <body>
+    <main class="page-container">
+      <section class="auth-card" aria-labelledby="page-title">
+        <h1 id="page-title">Tạo tài khoản</h1>
+        <p class="muted">Mật khẩu cần ít nhất 6 ký tự và có ký tự đặc biệt.</p>
+        <form id="register-form">
+          <label for="fullName">Họ tên</label>
+          <input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="100" required>
+
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" maxlength="150" required>
+
+          <label for="password">Mật khẩu</label>
+          <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required>
+
+          <p class="form-message" role="status" aria-live="polite"></p>
+          <button class="button button-primary" type="submit">Đăng ký</button>
+        </form>
+        <p class="auth-switch">Đã có tài khoản? <a href="/login.html">Đăng nhập</a></p>
+      </section>
+    </main>
+  </body>
+</html>
