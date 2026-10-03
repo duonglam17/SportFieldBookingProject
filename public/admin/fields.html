@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý sân | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+    <script src="/js/admin.js" defer></script>
+  </head>
+  <body>
+    <main class="page-container admin-page">
+      <section class="admin-shell">
+        <h1>Quản lý sân và bảng giá</h1>
+        <div id="admin-message" class="form-message" aria-live="polite"></div>
+
+        <section class="admin-section">
+          <h2>Thêm / sửa sân</h2>
+          <form id="field-form" class="admin-form">
+            <input type="hidden" id="field-id" name="fieldId">
+            <label>
+              Tên sân
+              <input id="field-name" name="name" type="text" required>
+            </label>
+            <label>
+              Loại hình
+              <select id="field-sport-type" name="sportTypeId" required></select>
+            </label>
+            <label>
+              Trạng thái
+              <select id="field-status" name="status">
+                <option value="active">active</option>
+                <option value="maintenance">maintenance</option>
+              </select>
+            </label>
+            <label>
+              Mô tả
+              <textarea id="field-description" name="description" rows="3"></textarea>
+            </label>
+            <div class="button-row">
+              <button class="button button-primary" type="submit">Lưu sân</button>
+              <button class="button button-secondary" type="button" id="field-reset">Hủy</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-section">
+          <h2>Danh sách sân</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tên sân</th>
+                  <th>Loại hình</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="field-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <h2>Quy tắc giá</h2>
+          <form id="price-rule-form" class="admin-form">
+            <input type="hidden" id="price-rule-id" name="priceRuleId">
+            <label>
+              Loại hình
+              <select id="price-sport-type" name="sportTypeId" required></select>
+            </label>
+            <label>
+              Ngày
+              <select id="price-day-type" name="dayType">
+                <option value="weekday">weekday</option>
+                <option value="weekend">weekend</option>
+              </select>
+            </label>
+            <label>
+              Giờ bắt đầu
+              <input id="price-start-time" name="startTime" type="time" required>
+            </label>
+            <label>
+              Giờ kết thúc
+              <input id="price-end-time" name="endTime" type="time" required>
+            </label>
+            <label>
+              Giá / giờ
+              <input id="price-per-hour" name="pricePerHour" type="number" min="1" step="1000" required>
+            </label>
+            <div class="button-row">
+              <button class="button button-primary" type="submit">Lưu quy tắc</button>
+              <button class="button button-secondary" type="button" id="price-rule-reset">Hủy</button>
+            </div>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Loại hình</th>
+                  <th>Ngày</th>
+                  <th>Giờ</th>
+                  <th>Giá / giờ</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="price-rule-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
