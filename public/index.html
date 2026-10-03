@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đặt sân thể thao | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+    <script src="/js/home.js" defer></script>
+  </head>
+  <body>
+    <main class="page-container">
+      <section class="auth-card home-card" aria-labelledby="page-title">
+        <h1 id="page-title">Tìm sân phù hợp</h1>
+        <p class="muted">Chọn môn thể thao và ngày chơi để xem lịch sân còn trống.</p>
+        <form id="schedule-search-form">
+          <label for="sport-type">Môn thể thao</label>
+          <select id="sport-type" name="sportTypeId" required>
+            <option value="">Đang tải danh sách...</option>
+          </select>
+
+          <label for="booking-date">Ngày chơi</label>
+          <input id="booking-date" name="date" type="date" required>
+
+          <p id="home-message" class="form-message" role="status" aria-live="polite"></p>
+          <button class="button button-primary" type="submit">Xem lịch</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

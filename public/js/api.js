@@ -11,8 +11,10 @@ async function apiFetch(url, options = {}) {
   let payload;
   try {
     payload = await response.json();
-  } catch (error) {
-    throw new Error('Máy chủ trả về dữ liệu không hợp lệ.');
+  } catch {
+    const error = new Error('Máy chủ trả về dữ liệu không hợp lệ.');
+    error.status = response.status;
+    throw error;
   }
 
   if (!response.ok || payload.ok === false) {

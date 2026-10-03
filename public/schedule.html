@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lịch sân | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+    <script src="/js/schedule.js" defer></script>
+  </head>
+  <body>
+    <main class="schedule-page">
+      <section class="schedule-heading">
+        <div>
+          <h1 id="schedule-title">Lịch sân</h1>
+          <p id="schedule-date-label" class="muted"></p>
+        </div>
+        <a class="button button-secondary" href="/">Đổi lựa chọn</a>
+      </section>
+
+      <div id="schedule-message" class="form-message" role="status" aria-live="polite"></div>
+
+      <section class="schedule-card" aria-label="Lưới lịch sân">
+        <div class="schedule-legend" aria-label="Chú thích trạng thái">
+          <span><i class="legend-swatch slot-free"></i> Còn trống</span>
+          <span><i class="legend-swatch slot-booked"></i> Đã đặt</span>
+          <span><i class="legend-swatch slot-blocked"></i> Bị khóa</span>
+          <span><i class="legend-swatch slot-past"></i> Đã qua</span>
+          <span><i class="legend-swatch slot-selected"></i> Đang chọn</span>
+        </div>
+        <div id="schedule-grid-container" class="schedule-grid-scroll">
+          <p class="muted">Đang tải lịch sân...</p>
+        </div>
+      </section>
+
+      <section id="selection-bar" class="selection-bar" hidden aria-live="polite">
+        <div>
+          <strong id="selection-summary"></strong>
+          <p id="selection-price" class="muted">Đang cập nhật báo giá...</p>
+        </div>
+        <button id="book-selected" class="button button-primary" type="button">Đặt sân</button>
+      </section>
+    </main>
+  </body>
+</html>

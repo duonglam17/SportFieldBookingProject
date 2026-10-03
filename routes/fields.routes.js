@@ -4,6 +4,17 @@ const availabilityService = require('../services/availability.service');
 
 const router = express.Router();
 
+router.get('/config', (req, res) => {
+  res.json({
+    ok: true,
+    data: {
+      openTime: process.env.OPEN_TIME || '06:00',
+      closeTime: process.env.CLOSE_TIME || '22:00',
+      maxHoursPerBooking: Number(process.env.MAX_HOURS_PER_BOOKING || 3),
+    },
+  });
+});
+
 function positiveInteger(value, label) {
   if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) {
     const error = new Error(`${label} phải là số nguyên dương.`);
