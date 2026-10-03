@@ -8,6 +8,10 @@ function errorHandler(err, req, res, next) {
     Number.isInteger(requestedStatus) && requestedStatus >= 400 && requestedStatus < 600
       ? requestedStatus
       : 500;
+  if (statusCode >= 500) {
+    console.error(err);
+  }
+
   const message =
     statusCode >= 500
       ? 'Đã xảy ra lỗi trên máy chủ.'

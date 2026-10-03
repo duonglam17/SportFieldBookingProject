@@ -5,6 +5,7 @@ process.env.TZ = process.env.TZ || 'Asia/Ho_Chi_Minh';
 const express = require('express');
 const session = require('express-session');
 const errorHandler = require('./middleware/errorHandler');
+const fieldsRoutes = require('./routes/fields.routes');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
 
+app.use('/api', fieldsRoutes);
 app.use(errorHandler);
 
 app.listen(port, () => {
