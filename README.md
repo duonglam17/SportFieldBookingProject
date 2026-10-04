@@ -292,3 +292,100 @@ sport-booking/
 | POST/DELETE | `/api/admin/blocked-slots` | staff, admin | Khóa / mở khóa sân |
 | POST/PUT/DELETE | `/api/admin/sport-types`, `/fields`, `/price-rules` | admin | Quản lý sân và bảng giá |
 | GET | `/api/admin/stats?month=YYYY-MM` | admin | Doanh thu, số lượt đặt, giờ cao điểm |
+
+---
+
+## 7. Danh sách công việc
+
+### Giai đoạn 0 – Chuẩn bị 
+- [ ] Cài Node.js (bản LTS) và XAMPP
+- [ ] Tạo repo GitHub, thêm `.gitignore` (`node_modules`, `.env`)
+- [ ] Mở XAMPP, bật **Apache** và **MySQL**, vào `http://localhost/phpmyadmin`
+- [ ] Chốt các môn thể thao, số sân, giờ mở/đóng cửa, bảng giá mẫu (giờ thường, giờ cao điểm 17:00-21:00, cuối tuần)
+
+### Giai đoạn 1 – Khởi tạo dự án 
+- [ ] `npm init -y`, cài `express mysql2 bcrypt express-session dotenv`
+- [ ] Cài dev: `nodemon jest supertest`
+- [ ] Tạo cấu trúc thư mục ở mục 5
+- [ ] Viết `server.js` chạy được, phục vụ thư mục `public/`
+- [ ] Commit đầu tiên
+
+### Giai đoạn 2 – Cơ sở dữ liệu 
+- [ ] Chạy script ở mục 4 trong phpMyAdmin, lưu vào `sql/schema.sql`
+- [ ] Viết `config/db.js` dùng `mysql2/promise` với connection pool
+- [ ] Viết `sql/seed.sql`: 3-4 loại hình, 8-12 sân, bảng giá, 1 admin, 1 nhân viên, vài khách
+- [ ] Viết route thử `/api/sport-types` trả dữ liệu từ DB
+
+### Giai đoạn 3 – Xác thực và phân quyền 
+- [ ] Đăng ký: kiểm tra email trùng, băm mật khẩu bằng bcrypt
+- [ ] Đăng nhập, lưu `userId` và `role` trong session
+- [ ] Middleware `requireLogin` và `requireRole('staff','admin')`
+- [ ] Trang `login.html`, `register.html`
+- [ ] Thanh điều hướng đổi theo trạng thái đăng nhập và vai trò
+
+### Giai đoạn 4 – Quản lý sân và bảng giá 
+- [ ] API CRUD loại hình thể thao, sân, quy tắc giá (chỉ admin)
+- [ ] Kiểm tra bảng giá: các khung giờ không chồng nhau, phủ kín giờ mở cửa
+- [ ] Không cho xóa sân đang có lượt đặt, thay vào đó chuyển sang `maintenance`
+- [ ] Trang `admin/fields.html`: bảng sân, form thêm/sửa, quản lý giá
+
+### Giai đoạn 5 – Lịch trống 
+- [ ] Hàm `isRangeFree(fieldId, date, start, end)` dùng truy vấn chồng lấn (kiểm tra cả `blocked_slots`)
+- [ ] Kiểm tra đầu vào: định dạng ngày/giờ, giờ nằm trong giờ mở cửa, `end > start`, không đặt trong quá khứ, giới hạn số giờ tối đa mỗi lượt
+- [ ] Trang `index.html`: chọn môn thể thao và ngày
+- [ ] Trang `schedule.html`: lưới giờ cho từng sân (ô trống / đã đặt / bị khóa), bấm chọn khoảng giờ liên tiếp
+- [ ] Hiển thị báo giá ngay khi chọn khoảng giờ
+
+### Giai đoạn 6 – Đặt sân 
+- [ ] `pricing.service.js`: tính tiền theo từng khung giờ, ngày thường/cuối tuần
+- [ ] Tạo lượt đặt bằng **transaction + `SELECT ... FOR UPDATE`** như mục 4
+- [ ] Giá luôn tính lại ở server, không nhận từ client
+- [ ] Trang `booking.html`: xem lại thông tin, ghi chú, bấm xác nhận
+- [ ] Trang `my-bookings.html`: lịch của khách, tách "sắp tới" và "đã qua"
+- [ ] Khách hủy được khi còn ít nhất `CANCEL_BEFORE_HOURS` giờ trước giờ bắt đầu
+- [ ] Thử mở hai tab đặt cùng một khung giờ để kiểm tra không bị trùng
+
+### Giai đoạn 7 – Trang quản lý cho nhân viên
+- [ ] Trang `admin/bookings.html`: bảng lượt đặt, lọc theo ngày, sân, trạng thái
+- [ ] Nút chuyển trạng thái: xác nhận → hoàn tất / không đến / hủy
+- [ ] Chặn chuyển trạng thái sai (ví dụ từ `cancelled` sang `confirmed`, hoàn tất lượt chưa diễn ra)
+- [ ] Cập nhật thanh toán: chưa thanh toán / đã cọc / đã thanh toán
+- [ ] Trang `admin/blocked.html`: khóa sân theo ngày và khung giờ; không cho khóa trùng lượt đã có khách (phải xử lý lượt đó trước)
+- [ ] Xem lịch tổng của tất cả sân trong ngày
+
+### Giai đoạn 8 – Thống kê 
+- [ ] API `/api/admin/stats`: doanh thu theo ngày trong tháng, số lượt theo trạng thái, tỉ lệ không đến
+- [ ] Khung giờ được đặt nhiều nhất, sân được đặt nhiều nhất
+- [ ] Trang `admin/dashboard.html`: các thẻ số liệu và biểu đồ (Chart.js qua CDN)
+
+### Giai đoạn 9 – Giao diện và hoàn thiện
+- [ ] CSS dùng chung trong `style.css`, dùng biến CSS cho màu sắc
+- [ ] Lưới giờ dùng được trên điện thoại (cuộn ngang trong khung riêng)
+- [ ] Thông báo lỗi và thành công rõ ràng, trạng thái đang tải, danh sách rỗng
+- [ ] Xử lý lỗi tập trung bằng `errorHandler.js`
+
+### Giai đoạn 10 – Kiểm thử 
+- [ ] Unit test: kiểm tra chồng lấn khoảng giờ, tính giá, quy đổi ngày thường/cuối tuần
+- [ ] Test ca biên của đặt sân:
+  - [ ] Lượt A kết thúc 18:00, lượt B bắt đầu 18:00 (phải cho phép)
+  - [ ] Hai lượt chồng lấn một phần (phải từ chối)
+  - [ ] Khung giờ nằm hoàn toàn trong lượt đã có
+  - [ ] `start` bằng `end`, hoặc `end` trước `start`
+  - [ ] Giờ ngoài giờ mở cửa
+  - [ ] Đặt giờ đã qua trong ngày hôm nay
+  - [ ] Lượt đặt kéo dài qua hai mức giá (ví dụ 16:00-18:00 qua mốc cao điểm 17:00)
+  - [ ] Đặt vào cuối tuần so với ngày thường
+  - [ ] Sân đang `maintenance` hoặc khung giờ bị khóa
+  - [ ] Hủy sát giờ (dưới `CANCEL_BEFORE_HOURS`)
+  - [ ] Đặt cho ngày xa quá giới hạn cho phép
+- [ ] Test API bằng `supertest`: đăng nhập, đặt sân, hủy
+- [ ] Test phân quyền: khách không truy cập được `/api/admin/*`, khách A không hủy được lượt của khách B
+- [ ] Test hai yêu cầu đặt cùng một khung giờ cùng lúc, chỉ một yêu cầu thành công
+
+### Giai đoạn 11 – Bảo mật và tài liệu
+- [ ] Mọi truy vấn dùng tham số `?`, không nối chuỗi SQL (chống SQL injection)
+- [ ] Dữ liệu hiển thị ra HTML phải được escape (chống XSS)
+- [ ] Cookie session đặt `httpOnly`; thêm `helmet` và giới hạn số lần đăng nhập
+- [ ] Cập nhật README: ảnh chụp màn hình, tài khoản demo, hướng dẫn chạy
+
+---
