@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thống kê quản lý | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
+    <script src="/js/admin-stats.js" defer></script>
+  </head>
+  <body>
+    <main class="admin-dashboard-page">
+      <div class="dashboard-heading">
+        <div>
+          <h1>Thống kê hoạt động</h1>
+          <p class="muted">Doanh thu theo ngày ghi nhận: cọc + phần còn lại − hoàn tiền. Tỉ lệ không đến = lượt no_show / tổng lượt đặt trong tháng.</p>
+        </div>
+        <form id="stats-month-form" class="stats-month-form">
+          <label for="stats-month">Tháng thống kê</label>
+          <input id="stats-month" name="month" type="month" required>
+          <button class="button button-primary" type="submit">Xem thống kê</button>
+        </form>
+      </div>
+
+      <p id="stats-message" class="form-message" role="status" aria-live="polite"></p>
+
+      <section id="stats-cards" class="stats-cards" aria-label="Tóm tắt thống kê">
+        <article class="stats-card">
+          <h2>Doanh thu</h2>
+          <p id="stats-revenue">—</p>
+        </article>
+        <article class="stats-card">
+          <h2>Lượt đặt</h2>
+          <p id="stats-bookings">—</p>
+        </article>
+        <article class="stats-card">
+          <h2>Không đến</h2>
+          <p id="stats-no-show-count">—</p>
+        </article>
+        <article class="stats-card">
+          <h2>Tỉ lệ không đến</h2>
+          <p id="stats-no-show-rate">—</p>
+        </article>
+      </section>
+
+      <section class="stats-chart-grid">
+        <article class="stats-panel">
+          <h2>Doanh thu theo ngày</h2>
+          <div class="stats-chart-wrap">
+            <canvas id="revenue-chart" role="img" aria-label="Biểu đồ doanh thu theo ngày"></canvas>
+          </div>
+        </article>
+        <article class="stats-panel">
+          <h2>Lượt đặt theo khung giờ</h2>
+          <div class="stats-chart-wrap">
+            <canvas id="hour-chart" role="img" aria-label="Biểu đồ lượt đặt theo khung giờ"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="stats-table-grid">
+        <article class="stats-panel">
+          <h2>Lượt đặt theo trạng thái</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Trạng thái</th><th>Số lượt</th></tr></thead>
+              <tbody id="status-table-body"></tbody>
+            </table>
+          </div>
+        </article>
+        <article class="stats-panel">
+          <h2>Top 5 khung giờ</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Khung giờ</th><th>Số lượt</th></tr></thead>
+              <tbody id="popular-hours-body"></tbody>
+            </table>
+          </div>
+        </article>
+        <article class="stats-panel">
+          <h2>Lượt đặt theo sân</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Sân</th><th>Số lượt</th></tr></thead>
+              <tbody id="fields-table-body"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

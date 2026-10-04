@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
 const adminBookingRoutes = require('./routes/admin-bookings.routes');
 const adminBlockedSlotsRoutes = require('./routes/admin-blocked-slots.routes');
+const adminStatsRoutes = require('./routes/admin-stats.routes');
 const bookingRoutes = require('./routes/bookings.routes');
 const { startExpiryJob } = require('./services/expiry.job');
 
@@ -39,6 +40,7 @@ app.use('/api', fieldsRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin/bookings', adminBookingRoutes);
 app.use('/api/admin/blocked-slots', adminBlockedSlotsRoutes);
+app.use('/api/admin/stats', adminStatsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use(errorHandler);
 

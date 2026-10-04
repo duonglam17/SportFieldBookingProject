@@ -293,6 +293,7 @@ sport-booking/
 | POST | `/api/admin/blocked-slots` | staff, admin | Tạo khóa sân; từ chối và trả lượt đặt xung đột |
 | DELETE | `/api/admin/blocked-slots/:id` | staff, admin | Mở khóa sân |
 | GET | `/api/admin/blocked-slots/schedule?date=` | staff, admin | Lịch tổng tất cả sân trong ngày |
+| GET | `/api/admin/stats?month=YYYY-MM` | admin | Doanh thu, trạng thái, tỉ lệ không đến, khung giờ và lượt đặt theo sân |
 | POST/PUT/DELETE | `/api/admin/sport-types`, `/fields`, `/price-rules` | admin | Quản lý sân và bảng giá |
 | GET | `/api/admin/stats?month=YYYY-MM` | admin | Doanh thu, số lượt đặt, giờ cao điểm |
 

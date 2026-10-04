@@ -518,6 +518,118 @@ th {
   margin-top: 5px;
 }
 
+.admin-dashboard-page {
+  width: min(1200px, calc(100% - 32px));
+  margin: 32px auto;
+}
+
+.dashboard-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.dashboard-heading h1 {
+  margin: 0 0 8px;
+}
+
+.dashboard-heading p {
+  margin: 0;
+}
+
+.stats-month-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stats-month-form label {
+  font-weight: 600;
+}
+
+.stats-month-form input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.stats-card,
+.stats-panel {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.stats-card h2 {
+  margin: 0 0 12px;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.stats-card p {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.stats-chart-grid,
+.stats-table-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.stats-table-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stats-panel h2 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+}
+
+.stats-chart-wrap {
+  position: relative;
+  height: 300px;
+}
+
+.stats-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.stats-panel th,
+.stats-panel td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stats-panel th:last-child,
+.stats-panel td:last-child {
+  text-align: right;
+}
+
 .slot-past,
 .legend-swatch.slot-past {
   opacity: 0.42;
@@ -703,5 +815,24 @@ th {
   .blocked-list-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .dashboard-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stats-month-form {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .stats-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats-chart-grid,
+  .stats-table-grid {
+    grid-template-columns: 1fr;
   }
 }
