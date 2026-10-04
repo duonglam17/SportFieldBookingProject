@@ -8,6 +8,8 @@ const errorHandler = require('./middleware/errorHandler');
 const fieldsRoutes = require('./routes/fields.routes');
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
+const bookingRoutes = require('./routes/bookings.routes');
+const { startExpiryJob } = require('./services/expiry.job');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -32,8 +34,11 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', fieldsRoutes);
+app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use(errorHandler);
+
+startExpiryJob();
 
 app.listen(port, () => {
   console.log(`Server đang chạy tại http://localhost:${port}`);

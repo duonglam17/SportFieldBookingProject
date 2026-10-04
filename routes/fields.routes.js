@@ -12,6 +12,8 @@ router.get('/config', (req, res) => {
       openTime: process.env.OPEN_TIME || '06:00',
       closeTime: process.env.CLOSE_TIME || '22:00',
       maxHoursPerBooking: Number(process.env.MAX_HOURS_PER_BOOKING || 3),
+      cancelBeforeHours: Number(process.env.CANCEL_BEFORE_HOURS || 2),
+      refundFullBeforeHours: Number(process.env.REFUND_FULL_BEFORE_HOURS || 24),
     },
   });
 });

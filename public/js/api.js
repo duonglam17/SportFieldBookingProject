@@ -122,7 +122,10 @@ function initializeAuthForms() {
             password: formData.get('password'),
           }),
         });
-        window.location.assign('/');
+        const next = new URLSearchParams(window.location.search).get('next');
+        const safeNext =
+          next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+        window.location.assign(safeNext);
       } catch (error) {
         showFormMessage(message, error.message);
       }

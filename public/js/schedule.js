@@ -348,7 +348,31 @@ async function loadSchedule() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSchedule();
-  document.getElementById('book-selected').addEventListener('click', () => {
-    setScheduleMessage('Chức năng đặt sân sẽ được hoàn thiện ở bước tiếp theo.');
+  document.getElementById('book-selected').addEventListener('click', async () => {
+    if (!scheduleState.selection) return;
+
+    const field = scheduleState.fields.find(
+      (item) => item.id === scheduleState.selection.fieldId,
+    );
+    const hours = createHourList();
+    const bookingParams = new URLSearchParams({
+      fieldId: String(field.id),
+      sportTypeId: String(field.sport_type_id),
+      date: scheduleState.date,
+      start: hours[scheduleState.selection.startIndex],
+      end: hours[scheduleState.selection.endIndex],
+    });
+    const bookingUrl = `/booking.html?${bookingParams.toString()}`;
+
+    try {
+      await apiFetch('/api/auth/me');
+      window.location.assign(bookingUrl);
+    } catch (error) {
+      if (error.status === 401) {
+        window.location.assign(`/login.html?next=${encodeURIComponent(bookingUrl)}`);
+        return;
+      }
+      setScheduleMessage(error.message, true);
+    }
   });
 });

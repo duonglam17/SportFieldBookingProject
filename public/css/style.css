@@ -403,6 +403,84 @@ th {
   margin: 6px 0 0;
 }
 
+.booking-card {
+  width: min(100%, 640px);
+}
+
+.booking-card-item,
+.policy-box,
+.transfer-details {
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.booking-details p,
+.booking-card-item p {
+  margin: 9px 0;
+}
+
+.policy-box {
+  margin: 20px 0;
+  background: #f8faf9;
+}
+
+.policy-box h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.policy-box ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-muted);
+}
+
+.policy-box li + li {
+  margin-top: 7px;
+}
+
+.booking-card form {
+  display: grid;
+  gap: 10px;
+}
+
+.booking-card textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.my-bookings-page {
+  width: min(1000px, calc(100% - 32px));
+  margin: 32px auto;
+}
+
+.booking-list-section {
+  margin-top: 24px;
+}
+
+.booking-list {
+  display: grid;
+  gap: 12px;
+}
+
+.booking-card-item h3 {
+  margin: 0 0 10px;
+}
+
+.booking-card-item .transfer-details {
+  margin: 12px 0;
+  background: #f8faf9;
+}
+
+.booking-card-item .button {
+  margin-top: 8px;
+}
+
 .form-message {
   min-height: 1.4em;
   margin: 0;
