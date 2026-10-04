@@ -149,13 +149,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const { data } = await apiFetch('/api/auth/me');
     if (data.user.role !== 'admin') {
-      window.location.replace('/login.html');
+      window.redirectToAdminLogin();
       return;
     }
     await loadMonthlyStats(monthInput.value);
   } catch (error) {
     if (error.status === 401 || error.status === 403) {
-      window.location.replace('/login.html');
+      window.redirectToAdminLogin();
       return;
     }
     setStatsMessage(error.message, true);

@@ -267,7 +267,7 @@ async function initializeAdminBookings() {
   try {
     const { data } = await apiFetch('/api/auth/me');
     if (!['staff', 'admin'].includes(data.user.role)) {
-      window.location.replace('/login.html');
+      window.redirectToAdminLogin();
       return;
     }
     await loadBookingFilters();
@@ -275,7 +275,7 @@ async function initializeAdminBookings() {
     setAdminBookingMessage('');
   } catch (error) {
     if (error.status === 401 || error.status === 403) {
-      window.location.replace('/login.html');
+      window.redirectToAdminLogin();
       return;
     }
     renderAdminBookingMessageRow('Không tải được danh sách lượt đặt.');

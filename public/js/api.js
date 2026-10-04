@@ -125,21 +125,37 @@ function initializeAuthForms() {
     const formData = new FormData(loginForm);
 
       try {
-        await apiFetch('/api/auth/login', {
+      const { data } = await apiFetch('/api/auth/login', {
           method: 'POST',
           body: JSON.stringify({
             email: formData.get('email'),
             password: formData.get('password'),
           }),
         });
-        const next = new URLSearchParams(window.location.search).get('next');
-        const safeNext =
-          next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
-        window.location.assign(safeNext);
-      } catch (error) {
-        showFormMessage(message, error.message);
-        submitButton.disabled = false;
-        submitButton.textContent = 'Đăng nhập';
+      const redirect = new URLSearchParams(window.location.search).get('redirect');
+      const safeRedirect = getSafeInternalRedirect(redirect);
+      const destinations = {
+        admin: '/admin/dashboard.html',
+        staff: '/admin/bookings.html',
+        customer: '/',
+      };
+      const roleDestination = destinations[data?.user?.role];
+      if (!roleDestination) {
+        throw new Error('Không xác định được vai trò tài khoản.');
+      }
+      const redirectIsAllowedForRole =
+        data.user.role !== 'staff' ||
+        !safeRedirect?.startsWith('/admin/') ||
+        ['/admin/bookings.html', '/admin/blocked.html'].includes(
+          safeRedirect.split(/[?#]/, 1)[0],
+        );
+      window.location.assign(
+        safeRedirect && redirectIsAllowedForRole ? safeRedirect : roleDestination,
+      );
+    } catch (error) {
+      showFormMessage(message, error.message);
+      submitButton.disabled = false;
+      submitButton.textContent = 'Đăng nhập';
       }
     });
   }
@@ -174,9 +190,22 @@ function initializeAuthForms() {
   }
 }
 
+function getSafeInternalRedirect(value) {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
+    return null;
+  }
+  try {
+    const target = new URL(value, window.location.origin);
+    return target.origin === window.location.origin ? `${target.pathname}${target.search}${target.hash}` : null;
+  } catch {
+    return null;
+  }
+}
+
 window.apiFetch = apiFetch;
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (document.body.hasAttribute('data-admin-navigation')) return;
   renderNavigation();
   initializeAuthForms();
 });

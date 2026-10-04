@@ -303,7 +303,7 @@ async function initAdminPage() {
   try {
     const sessionResponse = await apiFetch('/api/auth/me');
     if (!sessionResponse.data || !sessionResponse.data.user || !['admin'].includes(sessionResponse.data.user.role)) {
-      window.location.href = '/login.html';
+      window.redirectToAdminLogin();
       return;
     }
 
@@ -322,7 +322,7 @@ async function initAdminPage() {
     document.addEventListener('click', handleTableAction);
   } catch (error) {
     if (error.status === 401 || error.status === 403) {
-      window.location.replace('/login.html');
+      window.redirectToAdminLogin();
       return;
     }
     showLoadFailure();

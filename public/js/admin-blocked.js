@@ -229,14 +229,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const { data } = await apiFetch('/api/auth/me');
     if (!['staff', 'admin'].includes(data.user.role)) {
-      window.location.replace('/login.html');
+      window.redirectToAdminLogin();
       return;
     }
 
     await loadFields();
   } catch (error) {
     if (error.status === 401 || error.status === 403) {
-      window.location.replace('/login.html');
+      window.redirectToAdminLogin();
       return;
     }
     setBlockedMessage(error.message, true);
