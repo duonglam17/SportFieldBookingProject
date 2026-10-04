@@ -53,6 +53,36 @@ function mockExecute(state, sql, params) {
     return [booking ? [{ id: booking.id }] : []];
   }
 
+  if (
+    sql.includes('FROM bookings') &&
+    sql.includes('FOR UPDATE') &&
+    !sql.includes('SELECT id, user_id, field_id')
+  ) {
+    const id = params[0];
+    const booking = state.bookings.find((item) => item.id === id);
+    if (!booking) return [[]];
+
+    if (sql.includes('seconds_until_start')) {
+      return [[{
+        id: booking.id,
+        status: booking.status,
+        payment_status: booking.paymentStatus,
+        hold_valid: booking.expiresAtMs > Date.now() ? 1 : 0,
+        seconds_until_start: Math.floor(
+          (mockDateTime(booking.date, booking.start) - Date.now()) / 1000,
+        ),
+      }]];
+    }
+
+    return [[{
+      id: booking.id,
+      total_price: booking.totalPrice,
+      status: booking.status,
+      payment_status: booking.paymentStatus,
+      hold_valid: booking.expiresAtMs > Date.now() ? 1 : 0,
+    }]];
+  }
+
   if (sql.includes('FROM blocked_slots')) {
     return [[]];
   }
@@ -134,8 +164,43 @@ function mockExecute(state, sql, params) {
     return [[{ depositAmount: amount }]];
   }
 
+  if (sql.includes('AS received') && sql.includes('AS deposits')) {
+    const payments = state.payments.filter((payment) => payment.bookingId === params[0]);
+    return [[{
+      received: payments
+        .filter((payment) => payment.type === 'deposit' || payment.type === 'balance')
+        .reduce((sum, payment) => sum + payment.amount, 0),
+      refunded: payments
+        .filter((payment) => payment.type === 'refund' && payment.recordedBy !== null)
+        .reduce((sum, payment) => sum + payment.amount, 0),
+      deposits: payments
+        .filter((payment) => payment.type === 'deposit')
+        .reduce((sum, payment) => sum + payment.amount, 0),
+    }]];
+  }
+
+  if (sql.includes('FROM payments') && sql.includes('recorded_by IS NULL')) {
+    const pendingRefund = state.payments.find(
+      (payment) =>
+        payment.bookingId === params[0] &&
+        payment.type === 'refund' &&
+        payment.recordedBy === null,
+    );
+    return [pendingRefund ? [{ id: pendingRefund.id, amount: pendingRefund.amount }] : []];
+  }
+
+  if (sql.startsWith('UPDATE payments SET method')) {
+    const payment = state.payments.find((item) => item.id === params[3]);
+    if (!payment || payment.recordedBy !== null) return [{ affectedRows: 0 }];
+    payment.method = params[0];
+    payment.note = params[1];
+    payment.recordedBy = params[2];
+    return [{ affectedRows: 1 }];
+  }
+
   if (sql.includes("INSERT INTO payments") && sql.includes("'refund'")) {
     state.payments.push({
+      id: state.payments.length + 1,
       bookingId: params[0],
       amount: params[1],
       type: 'refund',
@@ -143,6 +208,35 @@ function mockExecute(state, sql, params) {
       recordedBy: null,
     });
     return [{ insertId: state.payments.length }];
+  }
+
+  if (sql.includes('INSERT INTO payments') && sql.includes('VALUES (?, ?, ?, ?, ?, ?)')) {
+    const payment = {
+      id: state.payments.length + 1,
+      bookingId: params[0],
+      amount: params[1],
+      type: params[2],
+      method: params[3],
+      note: params[4],
+      recordedBy: params[5],
+    };
+    state.payments.push(payment);
+    return [{ insertId: payment.id }];
+  }
+
+  if (sql.startsWith('UPDATE bookings SET status = ?, payment_status = ?')) {
+    const booking = state.bookings.find((item) => item.id === params[2]);
+    if (!booking || booking.status !== params[3]) return [{ affectedRows: 0 }];
+    booking.status = params[0];
+    booking.paymentStatus = params[1];
+    return [{ affectedRows: 1 }];
+  }
+
+  if (sql.startsWith('UPDATE bookings SET payment_status = ?')) {
+    const booking = state.bookings.find((item) => item.id === params[1]);
+    if (!booking) return [{ affectedRows: 0 }];
+    booking.paymentStatus = params[0];
+    return [{ affectedRows: 1 }];
   }
 
   if (sql.includes("SET status = 'cancelled'")) {
@@ -217,7 +311,12 @@ jest.mock('../services/availability.service', () => {
   };
 });
 
-const { createBooking, cancelBooking } = require('../services/booking.service');
+const {
+  createBooking,
+  cancelBooking,
+  updateBookingStatus,
+  recordBookingPayment,
+} = require('../services/booking.service');
 
 const TEST_DATE = '2026-10-05';
 
@@ -411,4 +510,137 @@ test('rejects booking when the field is in maintenance', async () => {
       end: '19:00',
     }),
   ).rejects.toMatchObject({ statusCode: 409 });
+});
+
+test('completes booking lifecycle: deposit, confirm, balance, then completed', async () => {
+  const created = await createBooking(1, {
+    fieldId: 1,
+    date: TEST_DATE,
+    start: '18:00',
+    end: '19:00',
+  });
+  const bookingId = created.booking.id;
+
+  const deposit = await recordBookingPayment(bookingId, 2, {
+    type: 'deposit',
+    amount: 135000,
+    method: 'Chuyển khoản',
+    note: 'Đã nhận cọc',
+  });
+  expect(deposit.paymentStatus).toBe('deposit_paid');
+
+  await expect(updateBookingStatus(bookingId, 'confirmed')).resolves.toMatchObject({
+    status: 'confirmed',
+    paymentStatus: 'deposit_paid',
+  });
+  const balance = await recordBookingPayment(bookingId, 2, {
+    type: 'balance',
+    amount: 315000,
+    method: 'Tiền mặt',
+  });
+  expect(balance.paymentStatus).toBe('paid');
+  expect(balance.balanceDue).toBe(0);
+
+  jest.setSystemTime(new Date('2026-10-05T19:00:00+07:00'));
+  await expect(updateBookingStatus(bookingId, 'completed')).resolves.toMatchObject({
+    status: 'completed',
+    paymentStatus: 'paid',
+  });
+  expect(mockStore.bookings[0].status).toBe('completed');
+  expect(mockStore.payments.map((payment) => payment.type)).toEqual(['deposit', 'balance']);
+});
+
+test('rejects invalid booking status order and premature completion', async () => {
+  const booking = addExistingBooking({
+    userId: 1,
+    status: 'pending',
+    date: TEST_DATE,
+    start: '18:00',
+  });
+
+  await expect(updateBookingStatus(booking.id, 'completed')).rejects.toMatchObject({
+    statusCode: 409,
+  });
+  await expect(updateBookingStatus(booking.id, 'confirmed')).rejects.toMatchObject({
+    statusCode: 409,
+    message: expect.stringContaining('tiền cọc'),
+  });
+
+  booking.status = 'completed';
+  await expect(updateBookingStatus(booking.id, 'confirmed')).rejects.toMatchObject({
+    statusCode: 409,
+  });
+});
+
+test('rejects payments that exceed the booking total or an invalid refund', async () => {
+  const booking = addExistingBooking({
+    userId: 1,
+    status: 'confirmed',
+    totalPrice: 450000,
+  });
+
+  await expect(
+    recordBookingPayment(booking.id, 2, {
+      type: 'balance',
+      amount: 450001,
+      method: 'Chuyển khoản',
+    }),
+  ).rejects.toMatchObject({ statusCode: 409 });
+  expect(mockStore.payments).toHaveLength(0);
+});
+
+test('staff confirms a pending refund request without inserting a duplicate refund row', async () => {
+  const booking = addExistingBooking({
+    userId: 1,
+    status: 'cancelled',
+    paymentStatus: 'deposit_paid',
+    totalPrice: 450000,
+  });
+  mockStore.payments.push(
+    { id: 1, bookingId: booking.id, type: 'deposit', amount: 135000, recordedBy: 2 },
+    {
+      id: 2,
+      bookingId: booking.id,
+      type: 'refund',
+      amount: 135000,
+      recordedBy: null,
+      method: null,
+    },
+  );
+
+  const result = await recordBookingPayment(booking.id, 3, {
+    type: 'refund',
+    amount: 135000,
+    method: 'Chuyển khoản',
+  });
+
+  expect(result.paymentId).toBe(2);
+  expect(mockStore.payments).toHaveLength(2);
+  expect(mockStore.payments[1]).toMatchObject({
+    type: 'refund',
+    amount: 135000,
+    method: 'Chuyển khoản',
+    recordedBy: 3,
+  });
+});
+
+test('customer role receives 403 from staff/admin booking APIs', async () => {
+  const express = require('express');
+  const request = require('supertest');
+  const adminBookingRoutes = require('../routes/admin-bookings.routes');
+  const errorHandler = require('../middleware/errorHandler');
+  const app = express();
+  app.use((req, res, next) => {
+    req.session = { userId: 1, role: 'customer' };
+    next();
+  });
+  app.use('/api/admin/bookings', adminBookingRoutes);
+  app.use(errorHandler);
+
+  const response = await request(app).get('/api/admin/bookings');
+  expect(response.status).toBe(403);
+  expect(response.body).toEqual({
+    ok: false,
+    error: 'Bạn không có quyền thực hiện thao tác này.',
+  });
 });

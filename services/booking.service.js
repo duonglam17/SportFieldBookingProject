@@ -118,7 +118,7 @@ async function getMyBookings(userId) {
             COALESCE((
               SELECT SUM(p.amount)
               FROM payments p
-              WHERE p.booking_id = b.id AND p.type = 'refund'
+              WHERE p.booking_id = b.id AND p.type = 'refund' AND p.recorded_by IS NULL
             ), 0) AS refundPending
      FROM bookings b
      INNER JOIN fields f ON f.id = b.field_id
@@ -216,4 +216,317 @@ async function cancelBooking(userId, bookingId) {
   });
 }
 
-module.exports = { createBooking, getMyBookings, cancelBooking };
+const BOOKING_STATUS_TRANSITIONS = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['completed', 'no_show', 'cancelled'],
+  completed: [],
+  no_show: [],
+  cancelled: [],
+};
+
+async function getAdminBookings(filters = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (filters.status) {
+    const allowedStatuses = ['pending', 'confirmed', 'completed', 'no_show', 'cancelled'];
+    if (!allowedStatuses.includes(filters.status)) {
+      throw createError(400, 'Trạng thái lượt đặt không hợp lệ.');
+    }
+    conditions.push('b.status = ?');
+    params.push(filters.status);
+  }
+
+  if (filters.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(filters.date)) {
+      throw createError(400, 'Ngày lọc phải đúng định dạng YYYY-MM-DD.');
+    }
+    conditions.push('b.booking_date = ?');
+    params.push(filters.date);
+  }
+
+  if (filters.fieldId !== undefined && filters.fieldId !== '') {
+    const fieldId = parsePositiveInteger(filters.fieldId, 'ID sân');
+    conditions.push('b.field_id = ?');
+    params.push(fieldId);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const [bookings] = await pool.execute(
+    `SELECT b.id, b.user_id AS userId, u.full_name AS customerName,
+            u.email AS customerEmail, b.field_id AS fieldId, f.name AS fieldName,
+            st.name AS sportTypeName,
+            DATE_FORMAT(b.booking_date, '%Y-%m-%d') AS date,
+            TIME_FORMAT(b.start_time, '%H:%i') AS start,
+            TIME_FORMAT(b.end_time, '%H:%i') AS end,
+            CAST(b.total_price AS UNSIGNED) AS totalPrice,
+            b.status, b.payment_status AS paymentStatus, b.note,
+            DATE_FORMAT(b.expires_at, '%Y-%m-%d %H:%i:%s') AS expiresAt,
+            GREATEST(TIMESTAMPDIFF(SECOND, NOW(), b.expires_at), 0) AS holdSecondsRemaining
+     FROM bookings b
+     INNER JOIN users u ON u.id = b.user_id
+     INNER JOIN fields f ON f.id = b.field_id
+     INNER JOIN sport_types st ON st.id = f.sport_type_id
+     ${whereClause}
+     ORDER BY b.booking_date DESC, b.start_time DESC, b.id DESC`,
+    params,
+  );
+
+  if (bookings.length === 0) {
+    return [];
+  }
+
+  const bookingIds = bookings.map((booking) => booking.id);
+  const placeholders = bookingIds.map(() => '?').join(', ');
+  const [payments] = await pool.execute(
+    `SELECT p.id, p.booking_id AS bookingId, CAST(p.amount AS UNSIGNED) AS amount,
+            p.type, p.method, p.note,
+            p.recorded_by AS recordedBy, u.full_name AS recorderName,
+            DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt
+     FROM payments p
+     LEFT JOIN users u ON u.id = p.recorded_by
+     WHERE p.booking_id IN (${placeholders})
+     ORDER BY p.created_at, p.id`,
+    bookingIds,
+  );
+  const paymentsByBooking = new Map();
+  payments.forEach((payment) => {
+    const list = paymentsByBooking.get(payment.bookingId) || [];
+    list.push({ ...payment, amount: Number(payment.amount) });
+    paymentsByBooking.set(payment.bookingId, list);
+  });
+
+  return bookings.map((booking) => ({
+    ...booking,
+    totalPrice: Number(booking.totalPrice),
+    holdSecondsRemaining: Number(booking.holdSecondsRemaining) || 0,
+    payments: paymentsByBooking.get(booking.id) || [],
+  }));
+}
+
+async function getAdminBookingFields() {
+  const [fields] = await pool.execute('SELECT id, name, status FROM fields ORDER BY name, id');
+  return fields;
+}
+
+async function updateBookingStatus(bookingId, nextStatus) {
+  const id = parsePositiveInteger(bookingId, 'ID lượt đặt');
+  const allowedStatuses = Object.keys(BOOKING_STATUS_TRANSITIONS);
+  if (!allowedStatuses.includes(nextStatus)) {
+    throw createError(400, 'Trạng thái lượt đặt không hợp lệ.');
+  }
+
+  return withTransaction(async (connection) => {
+    const [rows] = await connection.execute(
+      `SELECT id, status, payment_status, expires_at,
+              (expires_at IS NULL OR expires_at > NOW()) AS hold_valid,
+              TIMESTAMPDIFF(SECOND, NOW(), TIMESTAMP(booking_date, start_time)) AS seconds_until_start
+       FROM bookings
+       WHERE id = ?
+       FOR UPDATE`,
+      [id],
+    );
+    const booking = rows[0];
+    if (!booking) {
+      throw createError(404, 'Không tìm thấy lượt đặt.');
+    }
+
+    const allowedNext = BOOKING_STATUS_TRANSITIONS[booking.status];
+    if (!allowedNext.includes(nextStatus)) {
+      throw createError(
+        409,
+        `Không thể chuyển lượt đặt từ ${booking.status} sang ${nextStatus}.`,
+      );
+    }
+
+    if (nextStatus === 'confirmed') {
+      if (!booking.hold_valid) {
+        throw createError(409, 'Không thể xác nhận vì thời hạn giữ chỗ đã hết.');
+      }
+
+      const [depositRows] = await connection.execute(
+        `SELECT COALESCE(SUM(amount), 0) AS depositAmount
+         FROM payments
+         WHERE booking_id = ? AND type = 'deposit'`,
+        [id],
+      );
+      if (Number(depositRows[0]?.depositAmount) <= 0) {
+        throw createError(409, 'Chỉ có thể xác nhận sau khi đã ghi nhận khoản tiền cọc.');
+      }
+    }
+
+    if (
+      ['completed', 'no_show'].includes(nextStatus) &&
+      Number(booking.seconds_until_start) > 0
+    ) {
+      throw createError(409, 'Chỉ được chuyển sang completed hoặc no_show sau giờ bắt đầu.');
+    }
+
+    const nextPaymentStatus =
+      booking.payment_status === 'paid' ? 'paid' : 'deposit_paid';
+    const [result] = await connection.execute(
+      'UPDATE bookings SET status = ?, payment_status = ? WHERE id = ? AND status = ?',
+      [
+        nextStatus,
+        nextStatus === 'confirmed' ? nextPaymentStatus : booking.payment_status,
+        id,
+        booking.status,
+      ],
+    );
+    if (result.affectedRows !== 1) {
+      throw createError(409, 'Lượt đặt đã thay đổi trạng thái. Vui lòng tải lại danh sách.');
+    }
+
+    return {
+      bookingId: id,
+      status: nextStatus,
+      paymentStatus: nextStatus === 'confirmed' ? nextPaymentStatus : booking.payment_status,
+    };
+  });
+}
+
+async function recordBookingPayment(bookingId, recordedBy, input = {}) {
+  const id = parsePositiveInteger(bookingId, 'ID lượt đặt');
+  const staffId = parsePositiveInteger(recordedBy, 'ID nhân viên');
+  const { type, method, note } = input;
+  const amount = Number(input.amount);
+
+  if (!['deposit', 'balance', 'refund'].includes(type)) {
+    throw createError(400, 'Loại khoản thu phải là deposit, balance hoặc refund.');
+  }
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    throw createError(400, 'Số tiền phải là số nguyên lớn hơn 0.');
+  }
+  if (typeof method !== 'string' || !method.trim() || method.trim().length > 50) {
+    throw createError(400, 'Phương thức thanh toán không được để trống và tối đa 50 ký tự.');
+  }
+  if (note !== undefined && note !== null && (typeof note !== 'string' || note.length > 255)) {
+    throw createError(400, 'Ghi chú thanh toán tối đa 255 ký tự.');
+  }
+
+  return withTransaction(async (connection) => {
+    const [rows] = await connection.execute(
+      `SELECT id, total_price, status, payment_status, expires_at,
+              (expires_at IS NULL OR expires_at > NOW()) AS hold_valid
+       FROM bookings
+       WHERE id = ?
+       FOR UPDATE`,
+      [id],
+    );
+    const booking = rows[0];
+    if (!booking) {
+      throw createError(404, 'Không tìm thấy lượt đặt.');
+    }
+
+    const holdExpired = !booking.hold_valid;
+    if (type !== 'refund' && (booking.status === 'cancelled' || booking.status === 'no_show')) {
+      throw createError(409, 'Không thể ghi nhận khoản thu cho lượt đặt đã hủy hoặc không đến.');
+    }
+    if (type === 'deposit' && booking.status === 'pending' && holdExpired) {
+      throw createError(409, 'Không thể ghi nhận cọc vì thời hạn giữ chỗ đã hết.');
+    }
+    if (type === 'deposit' && !['pending', 'confirmed'].includes(booking.status)) {
+      throw createError(409, 'Chỉ ghi nhận tiền cọc cho lượt pending hoặc confirmed.');
+    }
+    if (type === 'balance' && !['confirmed', 'completed'].includes(booking.status)) {
+      throw createError(409, 'Chỉ ghi nhận phần tiền còn lại cho lượt confirmed hoặc completed.');
+    }
+
+    const [totalsRows] = await connection.execute(
+      `SELECT
+         COALESCE(SUM(CASE WHEN type IN ('deposit', 'balance') THEN amount ELSE 0 END), 0) AS received,
+         COALESCE(SUM(CASE WHEN type = 'refund' AND recorded_by IS NOT NULL THEN amount ELSE 0 END), 0) AS refunded,
+         COALESCE(SUM(CASE WHEN type = 'deposit' THEN amount ELSE 0 END), 0) AS deposits
+       FROM payments
+       WHERE booking_id = ?`,
+      [id],
+    );
+    const totals = totalsRows[0];
+    const received = Number(totals.received);
+    const refunded = Number(totals.refunded);
+    const depositTotal = Number(totals.deposits);
+    const balance = received - refunded;
+    if (type === 'refund' && amount > balance) {
+      throw createError(409, 'Số tiền hoàn không được vượt quá số tiền đã thu chưa hoàn.');
+    }
+    if (type !== 'refund' && balance + amount > Number(booking.total_price)) {
+      throw createError(409, 'Tổng số tiền đã thu không được vượt quá tổng tiền lượt đặt.');
+    }
+    if (
+      type === 'refund' &&
+      !['cancelled', 'completed', 'no_show'].includes(booking.status)
+    ) {
+      throw createError(409, 'Chỉ được ghi nhận hoàn tiền cho lượt đã kết thúc hoặc bị hủy.');
+    }
+
+    let paymentId;
+    if (type === 'refund') {
+      const [refundRequests] = await connection.execute(
+        `SELECT id, amount
+         FROM payments
+         WHERE booking_id = ? AND type = 'refund' AND recorded_by IS NULL
+         ORDER BY id
+         LIMIT 1
+         FOR UPDATE`,
+        [id],
+      );
+      const refundRequest = refundRequests[0];
+      if (refundRequest) {
+        if (Number(refundRequest.amount) !== amount) {
+          throw createError(409, 'Số tiền xác nhận phải khớp với yêu cầu hoàn cọc đang chờ.');
+        }
+        await connection.execute(
+          'UPDATE payments SET method = ?, note = ?, recorded_by = ? WHERE id = ? AND recorded_by IS NULL',
+          [method.trim(), note?.trim() || 'Nhân viên xác nhận hoàn tiền.', staffId, refundRequest.id],
+        );
+        paymentId = refundRequest.id;
+      }
+    }
+
+    if (!paymentId) {
+      const [result] = await connection.execute(
+        `INSERT INTO payments (booking_id, amount, type, method, note, recorded_by)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [id, amount, type, method.trim(), note?.trim() || null, staffId],
+      );
+      paymentId = result.insertId;
+    }
+
+    const nextBalance = type === 'refund' ? balance - amount : balance + amount;
+    const nextDepositTotal = type === 'deposit' ? depositTotal + amount : depositTotal;
+    const nextRefunded = type === 'refund' ? refunded + amount : refunded;
+    let paymentStatus = 'unpaid';
+    if (nextBalance >= Number(booking.total_price)) {
+      paymentStatus = 'paid';
+    } else if (nextDepositTotal - nextRefunded > 0) {
+      paymentStatus = 'deposit_paid';
+    }
+
+    await connection.execute('UPDATE bookings SET payment_status = ? WHERE id = ?', [
+      paymentStatus,
+      id,
+    ]);
+
+    return {
+      paymentId,
+      bookingId: id,
+      amount,
+      type,
+      method: method.trim(),
+      note: note?.trim() || null,
+      recordedBy: staffId,
+      paymentStatus,
+      balanceDue: Math.max(Number(booking.total_price) - nextBalance, 0),
+    };
+  });
+}
+
+module.exports = {
+  createBooking,
+  getMyBookings,
+  cancelBooking,
+  getAdminBookings,
+  getAdminBookingFields,
+  updateBookingStatus,
+  recordBookingPayment,
+};

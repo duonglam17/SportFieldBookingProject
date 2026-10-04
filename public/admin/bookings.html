@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý lượt đặt | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+    <script src="/js/admin-bookings.js" defer></script>
+  </head>
+  <body>
+    <main class="my-bookings-page">
+      <h1>Quản lý lượt đặt</h1>
+      <p id="admin-bookings-message" class="form-message" role="status" aria-live="polite"></p>
+
+      <form id="booking-filters" class="admin-form booking-filters">
+        <label>
+          Ngày
+          <input id="filter-date" name="date" type="date">
+        </label>
+        <label>
+          Sân
+          <select id="filter-field" name="fieldId">
+            <option value="">Tất cả sân</option>
+          </select>
+        </label>
+        <label>
+          Trạng thái
+          <select id="filter-status" name="status">
+            <option value="">Tất cả trạng thái</option>
+            <option value="pending">pending</option>
+            <option value="confirmed">confirmed</option>
+            <option value="completed">completed</option>
+            <option value="no_show">no_show</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+        </label>
+        <div class="button-row">
+          <button class="button button-primary" type="submit">Lọc</button>
+          <button class="button button-secondary" id="clear-filters" type="button">Xóa lọc</button>
+        </div>
+      </form>
+
+      <div class="table-wrap">
+        <table class="admin-bookings-table">
+          <thead>
+            <tr>
+              <th>Mã / khách</th>
+              <th>Sân / thời gian</th>
+              <th>Trạng thái</th>
+              <th>Thanh toán</th>
+              <th>Thao tác / ghi nhận thanh toán</th>
+              <th>Lịch sử khoản thu</th>
+            </tr>
+          </thead>
+          <tbody id="admin-bookings-body">
+            <tr><td colspan="6">Đang tải lượt đặt...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

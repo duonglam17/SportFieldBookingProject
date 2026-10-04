@@ -227,6 +227,78 @@ th {
   background: #f4f7f5;
 }
 
+.booking-filters {
+  margin: 18px 0;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.admin-bookings-table {
+  min-width: 1100px;
+  background: var(--color-surface);
+}
+
+.admin-bookings-table td p {
+  margin: 5px 0;
+}
+
+.booking-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.booking-action-buttons .button {
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 0.85rem;
+}
+
+.payment-entry-form {
+  display: grid;
+  min-width: 190px;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: #f8faf9;
+}
+
+.payment-entry-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.payment-entry-form input,
+.payment-entry-form select {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: #fff;
+  font: inherit;
+}
+
+.payment-history {
+  min-width: 180px;
+}
+
+.payment-history-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.85rem;
+}
+
+.payment-history-item:last-child {
+  border-bottom: 0;
+}
+
 .home-card {
   width: min(100%, 520px);
 }
