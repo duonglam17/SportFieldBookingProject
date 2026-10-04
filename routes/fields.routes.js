@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/db');
 const availabilityService = require('../services/availability.service');
+const pricingService = require('../services/pricing.service');
 
 const router = express.Router();
 
@@ -31,6 +32,18 @@ router.get('/sport-types', async (req, res) => {
   );
 
   res.json({ ok: true, data: sportTypes });
+});
+
+router.get('/price', async (req, res) => {
+  const { sportTypeId, date, start, end } = req.query;
+  if (typeof sportTypeId !== 'string' || !/^[1-9]\d*$/.test(sportTypeId)) {
+    const error = new Error('ID loại hình phải là số nguyên dương.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const price = await pricingService.calculatePrice(sportTypeId, date, start, end);
+  res.json({ ok: true, data: price });
 });
 
 router.get('/fields/available', async (req, res) => {

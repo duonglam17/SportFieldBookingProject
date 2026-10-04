@@ -190,6 +190,7 @@ function renderSelection() {
   const bar = document.getElementById('selection-bar');
   const summary = document.getElementById('selection-summary');
   const price = document.getElementById('selection-price');
+  const breakdown = document.getElementById('selection-breakdown');
 
   if (!scheduleState.selection) {
     bar.hidden = true;
@@ -210,8 +211,9 @@ function renderSelection() {
 
   summary.textContent = `${selectedField.name}: ${start}–${end}`;
   price.textContent = 'Đang cập nhật báo giá...';
+  breakdown.textContent = '';
   bar.hidden = false;
-  loadPrice(selectedField, start, end, price);
+  loadPrice(selectedField, start, end, price, breakdown);
 }
 
 function createHourList() {
@@ -226,7 +228,7 @@ function createHourList() {
   return hours;
 }
 
-async function loadPrice(field, start, end, priceElement) {
+async function loadPrice(field, start, end, priceElement, breakdownElement) {
   const requestId = ++scheduleState.priceRequestId;
   const params = new URLSearchParams({
     sportTypeId: String(field.sport_type_id),
@@ -239,13 +241,21 @@ async function loadPrice(field, start, end, priceElement) {
     const { data } = await apiFetch(`/api/price?${params.toString()}`);
     if (requestId !== scheduleState.priceRequestId || !scheduleState.selection) return;
 
-    const amount =
-      typeof data === 'number'
-        ? data
-        : Number(data?.totalPrice ?? data?.price ?? data?.amount);
+    const amount = Number(data?.totalPrice ?? data?.price ?? data?.amount);
 
     if (Number.isFinite(amount) && amount >= 0) {
-      priceElement.textContent = `Tạm tính: ${amount.toLocaleString('vi-VN')}đ`;
+      priceElement.textContent = `Tổng tiền: ${amount.toLocaleString('vi-VN')}đ`;
+      if (Number.isFinite(Number(data.depositAmount))) {
+        priceElement.textContent += ` · Tiền cọc: ${Number(data.depositAmount).toLocaleString('vi-VN')}đ`;
+      }
+      breakdownElement.textContent = Array.isArray(data.breakdown)
+        ? data.breakdown
+            .map(
+              (slot) =>
+                `${slot.start}–${slot.end}: ${Number(slot.totalPrice).toLocaleString('vi-VN')}đ`,
+            )
+            .join(' · ')
+        : '';
     } else {
       priceElement.textContent = 'Giá đang cập nhật.';
     }
