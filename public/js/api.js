@@ -22,6 +22,7 @@ async function apiFetch(url, options = {}) {
       typeof payload.error === 'string' ? payload.error : 'Không thể xử lý yêu cầu.';
     const error = new Error(message);
     error.status = response.status;
+    error.data = payload.data;
     throw error;
   }
 

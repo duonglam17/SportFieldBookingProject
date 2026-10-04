@@ -289,7 +289,10 @@ sport-booking/
 | GET | `/api/admin/bookings?status=&date=` | staff, admin | Danh sách lượt đặt |
 | PATCH | `/api/admin/bookings/:id/status` | staff, admin | Xác nhận / hoàn tất / không đến / hủy |
 | PATCH | `/api/admin/bookings/:id/payment` | staff, admin | Cập nhật trạng thái thanh toán |
-| POST/DELETE | `/api/admin/blocked-slots` | staff, admin | Khóa / mở khóa sân |
+| GET | `/api/admin/blocked-slots?date=&fieldId=` | staff, admin | Danh sách khung giờ khóa |
+| POST | `/api/admin/blocked-slots` | staff, admin | Tạo khóa sân; từ chối và trả lượt đặt xung đột |
+| DELETE | `/api/admin/blocked-slots/:id` | staff, admin | Mở khóa sân |
+| GET | `/api/admin/blocked-slots/schedule?date=` | staff, admin | Lịch tổng tất cả sân trong ngày |
 | POST/PUT/DELETE | `/api/admin/sport-types`, `/fields`, `/price-rules` | admin | Quản lý sân và bảng giá |
 | GET | `/api/admin/stats?month=YYYY-MM` | admin | Doanh thu, số lượt đặt, giờ cao điểm |
 
@@ -350,8 +353,8 @@ sport-booking/
 - [ ] Nút chuyển trạng thái: xác nhận → hoàn tất / không đến / hủy
 - [ ] Chặn chuyển trạng thái sai (ví dụ từ `cancelled` sang `confirmed`, hoàn tất lượt chưa diễn ra)
 - [ ] Cập nhật thanh toán: chưa thanh toán / đã cọc / đã thanh toán
-- [ ] Trang `admin/blocked.html`: khóa sân theo ngày và khung giờ; không cho khóa trùng lượt đã có khách (phải xử lý lượt đó trước)
-- [ ] Xem lịch tổng của tất cả sân trong ngày
+- [x] Trang `admin/blocked.html`: khóa sân theo ngày và khung giờ; không cho khóa trùng lượt đã có khách (phải xử lý lượt đó trước)
+- [x] Xem lịch tổng của tất cả sân trong ngày
 
 ### Giai đoạn 8 – Thống kê 
 - [ ] API `/api/admin/stats`: doanh thu theo ngày trong tháng, số lượt theo trạng thái, tỉ lệ không đến

@@ -17,7 +17,11 @@ function errorHandler(err, req, res, next) {
       ? 'Đã xảy ra lỗi trên máy chủ.'
       : err.message || 'Yêu cầu không hợp lệ.';
 
-  res.status(statusCode).json({ ok: false, error: message });
+  res.status(statusCode).json({
+    ok: false,
+    error: message,
+    ...(err.details ? { data: err.details } : {}),
+  });
 }
 
 module.exports = errorHandler;

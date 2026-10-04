@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Khóa sân | Sport Booking</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/api.js" defer></script>
+    <script src="/js/admin-blocked.js" defer></script>
+  </head>
+  <body>
+    <main class="my-bookings-page blocked-admin-page">
+      <h1>Quản lý khóa sân</h1>
+      <p id="blocked-message" class="form-message" role="status" aria-live="polite"></p>
+
+      <section class="admin-section admin-shell">
+        <h2>Tạo khung giờ khóa</h2>
+        <form id="blocked-form" class="admin-form">
+          <label>
+            Sân
+            <select id="blocked-field" name="fieldId" required></select>
+          </label>
+          <label>
+            Ngày
+            <input id="blocked-date" name="date" type="date" required>
+          </label>
+          <label>
+            Giờ bắt đầu
+            <input id="blocked-start" name="start" type="time" step="3600" required>
+          </label>
+          <label>
+            Giờ kết thúc
+            <input id="blocked-end" name="end" type="time" step="3600" required>
+          </label>
+          <label>
+            Lý do
+            <input id="blocked-reason" name="reason" type="text" maxlength="255">
+          </label>
+          <div class="button-row">
+            <button class="button button-primary" type="submit">Tạo khóa sân</button>
+          </div>
+        </form>
+        <div id="booking-conflicts" class="conflict-list" hidden></div>
+      </section>
+
+      <section class="admin-section admin-shell">
+        <div class="blocked-list-heading">
+          <h2>Danh sách khóa sắp tới</h2>
+          <label>
+            Ngày lọc
+            <input id="blocked-list-date" type="date">
+          </label>
+        </div>
+        <div id="blocked-list" class="booking-list"></div>
+      </section>
+
+      <section class="admin-section admin-shell">
+        <div class="blocked-list-heading">
+          <div>
+            <h2>Lịch tổng tất cả sân</h2>
+            <p class="muted">Lượt đã đặt hiển thị tên khách để nhân viên đối chiếu trước khi khóa.</p>
+          </div>
+          <label>
+            Ngày xem
+            <input id="schedule-date" type="date" required>
+          </label>
+        </div>
+        <div class="schedule-legend" aria-label="Chú thích trạng thái">
+          <span><i class="legend-swatch slot-free"></i> Trống</span>
+          <span><i class="legend-swatch slot-booked"></i> Đã đặt</span>
+          <span><i class="legend-swatch slot-blocked"></i> Bị khóa</span>
+          <span><i class="legend-swatch slot-maintenance"></i> Bảo trì</span>
+        </div>
+        <div id="daily-schedule" class="schedule-grid-scroll">
+          <p class="muted">Đang tải lịch tổng...</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
