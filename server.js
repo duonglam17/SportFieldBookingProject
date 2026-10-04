@@ -4,6 +4,7 @@ process.env.TZ = process.env.TZ || 'Asia/Ho_Chi_Minh';
 
 const express = require('express');
 const session = require('express-session');
+const helmet = require('helmet');
 const errorHandler = require('./middleware/errorHandler');
 const fieldsRoutes = require('./routes/fields.routes');
 const authRoutes = require('./routes/auth.routes');
@@ -17,6 +18,19 @@ const { startExpiryJob } = require('./services/expiry.job');
 const app = express();
 const port = Number(process.env.PORT || 3000);
 
+if (process.env.TRUST_PROXY === '1') {
+  app.set('trust proxy', 1);
+}
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+      },
+    },
+  }),
+);
 app.use(express.json());
 app.use(
   session({
@@ -25,6 +39,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 8 * 60 * 60 * 1000,
     },
   }),
 );

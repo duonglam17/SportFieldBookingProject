@@ -68,15 +68,21 @@ function renderNavigation() {
       logoutButton.className = 'button button-link';
       logoutButton.type = 'button';
       logoutButton.textContent = 'Đăng xuất';
+      const logoutMessage = document.createElement('span');
+      logoutMessage.className = 'nav-message form-message-error';
+      logoutMessage.setAttribute('role', 'status');
+      logoutMessage.setAttribute('aria-live', 'polite');
       logoutButton.addEventListener('click', async () => {
+        logoutButton.disabled = true;
         try {
           await apiFetch('/api/auth/logout', { method: 'POST' });
           window.location.assign('/login.html');
         } catch (error) {
-          window.alert(error.message);
+          logoutMessage.textContent = error.message;
+          logoutButton.disabled = false;
         }
       });
-      links.append(logoutButton);
+      links.append(logoutButton, logoutMessage);
     })
     .catch((error) => {
       if (error.status !== 401) {
@@ -111,9 +117,12 @@ function initializeAuthForms() {
 
   if (loginForm) {
     const message = loginForm.querySelector('.form-message');
+    const submitButton = loginForm.querySelector('[type="submit"]');
     loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const formData = new FormData(loginForm);
+    event.preventDefault();
+    submitButton.disabled = true;
+    submitButton.textContent = 'Đang đăng nhập...';
+    const formData = new FormData(loginForm);
 
       try {
         await apiFetch('/api/auth/login', {
@@ -129,14 +138,19 @@ function initializeAuthForms() {
         window.location.assign(safeNext);
       } catch (error) {
         showFormMessage(message, error.message);
+        submitButton.disabled = false;
+        submitButton.textContent = 'Đăng nhập';
       }
     });
   }
 
   if (registerForm) {
     const message = registerForm.querySelector('.form-message');
+    const submitButton = registerForm.querySelector('[type="submit"]');
     registerForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      submitButton.disabled = true;
+      submitButton.textContent = 'Đang đăng ký...';
       const formData = new FormData(registerForm);
 
       try {
@@ -152,6 +166,9 @@ function initializeAuthForms() {
         registerForm.reset();
       } catch (error) {
         showFormMessage(message, error.message);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Đăng ký';
       }
     });
   }

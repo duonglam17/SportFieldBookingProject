@@ -20,6 +20,14 @@ function makeCell(text) {
   return makeElement('td', text);
 }
 
+function renderAdminBookingMessageRow(message) {
+  const row = document.createElement('tr');
+  const cell = makeCell(message);
+  cell.colSpan = 6;
+  row.appendChild(cell);
+  document.getElementById('admin-bookings-body').replaceChildren(row);
+}
+
 function appendLabelValue(container, label, value) {
   const line = document.createElement('p');
   const strong = makeElement('strong', `${label}: `);
@@ -231,6 +239,14 @@ function renderAdminBookings() {
 }
 
 async function loadAdminBookings() {
+  const body = document.getElementById('admin-bookings-body');
+  const tableWrap = document.getElementById('admin-bookings-table-wrap');
+  tableWrap.setAttribute('aria-busy', 'true');
+  const loadingRow = document.createElement('tr');
+  const loadingCell = makeCell('Đang tải lượt đặt...');
+  loadingCell.colSpan = 6;
+  loadingRow.appendChild(loadingCell);
+  body.replaceChildren(loadingRow);
   const formData = new FormData(document.getElementById('booking-filters'));
   const query = new URLSearchParams();
   for (const key of ['status', 'date', 'fieldId']) {
@@ -238,9 +254,13 @@ async function loadAdminBookings() {
     if (value) query.set(key, value);
   }
 
-  const { data } = await apiFetch(`/api/admin/bookings${query.size ? `?${query}` : ''}`);
-  adminBookingState.bookings = data;
-  renderAdminBookings();
+  try {
+    const { data } = await apiFetch(`/api/admin/bookings${query.size ? `?${query}` : ''}`);
+    adminBookingState.bookings = data;
+    renderAdminBookings();
+  } finally {
+    tableWrap.removeAttribute('aria-busy');
+  }
 }
 
 async function initializeAdminBookings() {
@@ -252,11 +272,13 @@ async function initializeAdminBookings() {
     }
     await loadBookingFilters();
     await loadAdminBookings();
+    setAdminBookingMessage('');
   } catch (error) {
     if (error.status === 401 || error.status === 403) {
       window.location.replace('/login.html');
       return;
     }
+    renderAdminBookingMessageRow('Không tải được danh sách lượt đặt.');
     setAdminBookingMessage(error.message, true);
   }
 
@@ -265,6 +287,7 @@ async function initializeAdminBookings() {
     try {
       await loadAdminBookings();
     } catch (error) {
+      renderAdminBookingMessageRow('Không tải được danh sách lượt đặt.');
       setAdminBookingMessage(error.message, true);
     }
   });
@@ -273,6 +296,7 @@ async function initializeAdminBookings() {
     try {
       await loadAdminBookings();
     } catch (error) {
+      renderAdminBookingMessageRow('Không tải được danh sách lượt đặt.');
       setAdminBookingMessage(error.message, true);
     }
   });

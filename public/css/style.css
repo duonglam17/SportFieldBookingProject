@@ -20,6 +20,19 @@
   box-sizing: border-box;
 }
 
+:focus-visible {
+  outline: 3px solid #246fc2;
+  outline-offset: 3px;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
@@ -58,6 +71,8 @@ a {
 .site-nav-links {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 20px;
 }
 
@@ -68,6 +83,8 @@ a {
 
 .page-container {
   display: grid;
+  width: 100%;
+  min-width: 0;
   min-height: calc(100vh - 65px);
   place-items: center;
   padding: 32px 16px;
@@ -161,6 +178,8 @@ a {
 
 .admin-shell {
   width: min(1200px, 100%);
+  min-width: 0;
+  max-width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
@@ -206,7 +225,10 @@ a {
 }
 
 .table-wrap {
+  width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 table {
@@ -758,9 +780,90 @@ th {
   color: var(--color-success);
 }
 
+.nav-message {
+  max-width: 260px;
+  font-size: 0.85rem;
+}
+
+.admin-row-actions {
+  min-width: 220px;
+}
+
+.admin-row-action {
+  min-height: 36px;
+  margin: 0 4px 4px 0;
+  padding: 6px 9px;
+  font-size: 0.85rem;
+}
+
 .auth-switch {
   margin: 24px 0 0;
   text-align: center;
+}
+
+@media (max-width: 760px) {
+  .site-nav {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .site-nav-links {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 10px 16px;
+  }
+
+  .admin-dashboard-page,
+  .my-bookings-page,
+  .schedule-page {
+    width: calc(100% - 24px);
+    margin: 20px auto;
+  }
+
+  .admin-shell {
+    padding: 18px;
+  }
+
+  .admin-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-form input,
+  .admin-form select,
+  .admin-form textarea,
+  .booking-filters input,
+  .booking-filters select {
+    min-height: 44px;
+  }
+
+  .button-row {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .button-row .button {
+    flex: 1 1 150px;
+  }
+
+  .stats-cards {
+    gap: 10px;
+  }
+
+  .stats-card,
+  .stats-panel {
+    padding: 14px;
+  }
+
+  .admin-bookings-table {
+    min-width: 980px;
+  }
+
+  .schedule-grid-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @media (max-width: 520px) {
@@ -770,11 +873,49 @@ th {
   }
 
   .site-nav-links {
+    align-items: flex-start;
     gap: 12px;
+  }
+
+  .nav-user {
+    flex-basis: 100%;
   }
 
   .auth-card {
     padding: 24px 20px;
+  }
+
+  .page-container {
+    padding: 20px 12px;
+  }
+
+  .admin-dashboard-page,
+  .my-bookings-page,
+  .schedule-page {
+    width: calc(100% - 20px);
+    margin: 16px auto;
+  }
+
+  .admin-shell {
+    padding: 14px;
+  }
+
+  .stats-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-chart-wrap {
+    height: 250px;
+  }
+
+  .stats-month-form {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .stats-month-form input,
+  .stats-month-form button {
+    width: 100%;
   }
 
   .schedule-page {

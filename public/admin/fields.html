@@ -12,7 +12,7 @@
     <main class="page-container admin-page">
       <section class="admin-shell">
         <h1>Quản lý sân và bảng giá</h1>
-        <div id="admin-message" class="form-message" aria-live="polite"></div>
+        <div id="admin-message" class="form-message" role="status" aria-live="polite"></div>
 
         <section class="admin-section">
           <h2>Thêm / sửa sân</h2>
@@ -57,7 +57,7 @@
                   <th>Hành động</th>
                 </tr>
               </thead>
-              <tbody id="field-table-body"></tbody>
+              <tbody id="field-table-body" aria-live="polite"></tbody>
             </table>
           </div>
         </section>
@@ -107,7 +107,7 @@
                   <th>Hành động</th>
                 </tr>
               </thead>
-              <tbody id="price-rule-table-body"></tbody>
+              <tbody id="price-rule-table-body" aria-live="polite"></tbody>
             </table>
           </div>
         </section>

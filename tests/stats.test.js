@@ -9,9 +9,10 @@ describe('monthly booking statistics', () => {
       payments: [
         { date: '2024-02-01', type: 'deposit', amount: 100 },
         { date: '2024-02-01', type: 'balance', amount: 50 },
-        { date: '2024-02-01', type: 'refund', amount: 20 },
+        { date: '2024-02-01', type: 'refund', amount: 20, recordedBy: 4 },
+        { date: '2024-02-01', type: 'refund', amount: 500, recordedBy: null },
         { date: '2024-02-29', type: 'deposit', amount: 200 },
-        { date: '2024-02-29', type: 'refund', amount: 25 },
+        { date: '2024-02-29', type: 'refund', amount: 25, recordedBy: 4 },
         { date: '2024-03-01', type: 'deposit', amount: 999 },
       ],
       bookings: [

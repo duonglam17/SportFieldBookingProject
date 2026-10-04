@@ -114,17 +114,26 @@ function createBlockedCard(slot) {
 
 async function loadBlockedList() {
   const date = document.getElementById('blocked-list-date').value;
-  const query = new URLSearchParams();
-  if (date) query.set('date', date);
-  const suffix = query.size ? `?${query.toString()}` : '';
-  const { data: blockedSlots } = await apiFetch(`/api/admin/blocked-slots${suffix}`);
   const container = document.getElementById('blocked-list');
-  container.replaceChildren();
-  if (blockedSlots.length === 0) {
-    container.textContent = 'Không có khung giờ khóa sắp tới.';
-    return;
+  container.setAttribute('aria-busy', 'true');
+  container.textContent = 'Đang tải danh sách khóa sân...';
+  try {
+    const query = new URLSearchParams();
+    if (date) query.set('date', date);
+    const suffix = query.size ? `?${query.toString()}` : '';
+    const { data: blockedSlots } = await apiFetch(`/api/admin/blocked-slots${suffix}`);
+    container.replaceChildren();
+    if (blockedSlots.length === 0) {
+      container.textContent = 'Không có khung giờ khóa sắp tới.';
+      return;
+    }
+    blockedSlots.forEach((slot) => container.appendChild(createBlockedCard(slot)));
+  } catch (error) {
+    container.textContent = 'Không tải được danh sách khóa sân.';
+    throw error;
+  } finally {
+    container.removeAttribute('aria-busy');
   }
-  blockedSlots.forEach((slot) => container.appendChild(createBlockedCard(slot)));
 }
 
 function buildDailyGrid(fields, intervals, date) {
@@ -200,11 +209,20 @@ function buildDailyGrid(fields, intervals, date) {
 async function loadDailySchedule() {
   const date = document.getElementById('schedule-date').value;
   if (!date) return;
-  const { data } = await apiFetch(
-    `/api/admin/blocked-slots/schedule?date=${encodeURIComponent(date)}`,
-  );
   const container = document.getElementById('daily-schedule');
-  container.replaceChildren(buildDailyGrid(data.fields, data.intervals, date));
+  container.setAttribute('aria-busy', 'true');
+  container.textContent = 'Đang tải lịch tổng...';
+  try {
+    const { data } = await apiFetch(
+      `/api/admin/blocked-slots/schedule?date=${encodeURIComponent(date)}`,
+    );
+    container.replaceChildren(buildDailyGrid(data.fields, data.intervals, date));
+  } catch (error) {
+    container.textContent = 'Không tải được lịch tổng.';
+    throw error;
+  } finally {
+    container.removeAttribute('aria-busy');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -233,7 +251,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('blocked-form').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    submit.textContent = 'Đang xử lý...';
+    const formData = new FormData(form);
     try {
       const { data } = await apiFetch('/api/admin/blocked-slots', {
         method: 'POST',
@@ -251,6 +273,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
       renderConflicts(error.data?.conflicts || []);
       setBlockedMessage(error.message, true);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = 'Tạo khóa sân';
     }
   });
 });

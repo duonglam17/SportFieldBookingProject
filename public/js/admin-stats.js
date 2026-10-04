@@ -132,9 +132,14 @@ function renderStats(data) {
 
 async function loadMonthlyStats(month) {
   setStatsMessage('Đang tải thống kê...');
-  const { data } = await apiFetch(`/api/admin/stats?month=${encodeURIComponent(month)}`);
-  renderStats(data);
-  setStatsMessage(`Đang hiển thị thống kê tháng ${data.month}.`);
+  document.getElementById('stats-cards').setAttribute('aria-busy', 'true');
+  try {
+    const { data } = await apiFetch(`/api/admin/stats?month=${encodeURIComponent(month)}`);
+    renderStats(data);
+    setStatsMessage(`Đang hiển thị thống kê tháng ${data.month}.`);
+  } finally {
+    document.getElementById('stats-cards').removeAttribute('aria-busy');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -158,14 +163,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('stats-month-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const submit = event.currentTarget.querySelector('[type="submit"]');
     if (!monthInput.value) {
       setStatsMessage('Vui lòng chọn tháng thống kê.', true);
       return;
     }
+    submit.disabled = true;
     try {
       await loadMonthlyStats(monthInput.value);
     } catch (error) {
       setStatsMessage(error.message, true);
+    } finally {
+      submit.disabled = false;
     }
   });
 });

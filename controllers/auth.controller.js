@@ -104,8 +104,9 @@ async function register(req, res, next) {
 
 async function login(req, res, next) {
   try {
-    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    const body = req.body || {};
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
     const [users] = await pool.execute(
       'SELECT id, full_name, email, password_hash, role FROM users WHERE email = ? LIMIT 1',
       [email],

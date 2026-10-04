@@ -32,10 +32,10 @@ Một hệ thống web có hai phía:
 | Database | MySQL/MariaDB chạy bằng **XAMPP**, quản lý qua phpMyAdmin |
 | Thư viện kết nối DB | `mysql2` |
 | Mã hóa mật khẩu | `bcrypt` |
-| Phiên đăng nhập | `express-session` |
+| Phiên đăng nhập / HTTP headers | `express-session`, `helmet` |
 | Biến môi trường | `dotenv` |
 | Kiểm thử | `jest` + `supertest` |
-| Công cụ dev | `nodemon` |
+| Công cụ dev | Node.js `--watch` |
 
 ---
 
@@ -127,6 +127,7 @@ CREATE TABLE bookings (
     NOT NULL DEFAULT 'pending',
   payment_status ENUM('unpaid','deposit_paid','paid') NOT NULL DEFAULT 'unpaid',
   note VARCHAR(255),
+  expires_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id),
   FOREIGN KEY (field_id) REFERENCES fields(id),
@@ -147,6 +148,19 @@ CREATE TABLE blocked_slots (
   FOREIGN KEY (field_id) REFERENCES fields(id),
   FOREIGN KEY (created_by) REFERENCES users(id),
   CHECK (end_time > start_time)
+);
+
+CREATE TABLE payments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  booking_id INT NOT NULL,
+  amount DECIMAL(12,0) NOT NULL,
+  type ENUM('deposit','balance','refund') NOT NULL,
+  method VARCHAR(50),
+  note VARCHAR(255),
+  recorded_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (booking_id) REFERENCES bookings(id),
+  FOREIGN KEY (recorded_by) REFERENCES users(id)
 );
 ```
 
@@ -214,6 +228,31 @@ pending → confirmed → completed
 - `pending`: khách vừa đặt, chờ nhân viên xác nhận (hoặc xác nhận sau khi nhận cọc).
 - `completed` / `no_show`: chỉ đặt được sau khi đã qua giờ bắt đầu.
 - Chính sách hủy (đặt trong `.env`): khách chỉ được tự hủy khi còn ít nhất `CANCEL_BEFORE_HOURS=2` giờ trước giờ bắt đầu.
+
+### Giữ chỗ và thanh toán
+- Khi khách xác nhận đặt sân, hệ thống tạo lượt `pending` và đặt `expires_at` bằng thời điểm hiện tại cộng `HOLD_MINUTES`. Tác vụ nền chạy mỗi phút, chuyển lượt `pending` hết hạn thành `cancelled`; các lượt đó không còn giữ chỗ.
+- Tiền cọc gợi ý được tính phía máy chủ theo `DEPOSIT_PERCENT`, làm tròn lên hàng nghìn. Chuyển khoản không được xác nhận tự động; nhân viên ghi nhận khoản `deposit` trong trang quản lý rồi mới có thể xác nhận lượt.
+- Bảng `payments` lưu riêng từng khoản `deposit`, `balance` và `refund`. Doanh thu thống kê theo ngày ghi nhận là tổng cọc + phần còn lại − khoản hoàn tiền đã ghi nhận.
+- Nếu khách hủy lượt đã cọc đủ sớm, hệ thống ghi yêu cầu hoàn tiền (`refund` với `recorded_by = NULL`); nhân viên xác nhận khoản hoàn sau. Hủy sát hơn `REFUND_FULL_BEFORE_HOURS` không tạo yêu cầu hoàn cọc.
+
+### Cấu hình môi trường
+Sao chép `.env.example` thành `.env` rồi điều chỉnh:
+
+| Biến | Ý nghĩa |
+|---|---|
+| `PORT` | Cổng chạy Express (mặc định `3000`) |
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Kết nối MySQL của XAMPP |
+| `SESSION_SECRET` | Chuỗi bí mật dài, ngẫu nhiên để ký session |
+| `TZ` | Múi giờ máy chủ, dùng `Asia/Ho_Chi_Minh` |
+| `OPEN_TIME`, `CLOSE_TIME` | Giờ hoạt động trong ngày |
+| `MAX_HOURS_PER_BOOKING`, `MAX_DAYS_AHEAD` | Giới hạn thời lượng và ngày đặt xa nhất |
+| `HOLD_MINUTES` | Số phút giữ một lượt `pending` |
+| `DEPOSIT_PERCENT` | Tỉ lệ cọc gợi ý |
+| `CANCEL_BEFORE_HOURS`, `REFUND_FULL_BEFORE_HOURS` | Giới hạn tự hủy và điều kiện hoàn cọc |
+| `LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_MAX_FAILURES` | Cửa sổ giới hạn và số lần đăng nhập sai theo địa chỉ IP |
+| `TRUST_PROXY` | Đặt `1` sau đúng một reverse proxy đáng tin cậy; mặc định `0` |
+
+Trong production, phục vụ ứng dụng qua HTTPS để cookie session được đặt `Secure`. Nếu TLS kết thúc ở reverse proxy, chỉ đặt `TRUST_PROXY=1` khi ứng dụng chỉ nhận lưu lượng từ proxy đó.
 
 ---
 
@@ -295,11 +334,38 @@ sport-booking/
 | GET | `/api/admin/blocked-slots/schedule?date=` | staff, admin | Lịch tổng tất cả sân trong ngày |
 | GET | `/api/admin/stats?month=YYYY-MM` | admin | Doanh thu, trạng thái, tỉ lệ không đến, khung giờ và lượt đặt theo sân |
 | POST/PUT/DELETE | `/api/admin/sport-types`, `/fields`, `/price-rules` | admin | Quản lý sân và bảng giá |
-| GET | `/api/admin/stats?month=YYYY-MM` | admin | Doanh thu, số lượt đặt, giờ cao điểm |
 
 ---
 
-## 7. Danh sách công việc
+## 7. Chạy ứng dụng cục bộ với XAMPP
+
+1. Cài Node.js LTS và XAMPP; trong XAMPP Control Panel bật **MySQL** (và Apache nếu dùng phpMyAdmin).
+2. Mở `http://localhost/phpmyadmin`. Nếu database/bảng chưa có, chạy `sql/schema.sql` một lần trong tab **SQL**. Không chạy lại schema trên database đã có các bảng.
+3. Chọn database `sport_booking`, mở tab **Import**, chọn `sql/seed.sql` và nhấn **Import** để thêm dữ liệu học tập mẫu.
+4. Tại thư mục dự án, sao chép cấu hình mẫu trong PowerShell: `Copy-Item .env.example .env`. Cấu hình mặc định dùng `localhost:3306`, user `root`, mật khẩu rỗng, phù hợp với XAMPP local thường dùng.
+5. Cài dependencies và khởi động:
+
+   ```powershell
+   npm install
+   npm run dev
+   ```
+
+6. Mở `http://localhost:3000`. Chạy test bằng `npm test`.
+
+### Tài khoản demo (chỉ dùng học tập local)
+Tất cả tài khoản mẫu trong `sql/seed.sql` có mật khẩu `123456`:
+
+| Vai trò | Email |
+|---|---|
+| Admin | `admin@example.com` |
+| Staff | `staff@example.com` |
+| Customer | `customer1@example.com`, `customer2@example.com`, `customer3@example.com` |
+
+Không dùng các tài khoản này trong môi trường thật. Đổi hoặc xóa tài khoản demo trước khi triển khai công khai.
+
+---
+
+## 8. Danh sách công việc
 
 ### Giai đoạn 0 – Chuẩn bị 
 - [ ] Cài Node.js (bản LTS) và XAMPP
@@ -309,7 +375,7 @@ sport-booking/
 
 ### Giai đoạn 1 – Khởi tạo dự án 
 - [ ] `npm init -y`, cài `express mysql2 bcrypt express-session dotenv`
-- [ ] Cài dev: `nodemon jest supertest`
+- [ ] Cài dev: `jest supertest` (tự khởi động lại bằng `node --watch`)
 - [ ] Tạo cấu trúc thư mục ở mục 5
 - [ ] Viết `server.js` chạy được, phục vụ thư mục `public/`
 - [ ] Commit đầu tiên
@@ -363,10 +429,10 @@ sport-booking/
 - [ ] Trang `admin/dashboard.html`: các thẻ số liệu và biểu đồ (Chart.js qua CDN)
 
 ### Giai đoạn 9 – Giao diện và hoàn thiện
-- [ ] CSS dùng chung trong `style.css`, dùng biến CSS cho màu sắc
-- [ ] Lưới giờ dùng được trên điện thoại (cuộn ngang trong khung riêng)
-- [ ] Thông báo lỗi và thành công rõ ràng, trạng thái đang tải, danh sách rỗng
-- [ ] Xử lý lỗi tập trung bằng `errorHandler.js`
+- [x] CSS dùng chung trong `style.css`, dùng biến CSS cho màu sắc
+- [x] Lưới giờ dùng được trên điện thoại (cuộn ngang trong khung riêng)
+- [x] Thông báo lỗi và thành công rõ ràng, trạng thái đang tải, danh sách rỗng
+- [x] Xử lý lỗi tập trung bằng `errorHandler.js`
 
 ### Giai đoạn 10 – Kiểm thử 
 - [ ] Unit test: kiểm tra chồng lấn khoảng giờ, tính giá, quy đổi ngày thường/cuối tuần
@@ -387,9 +453,9 @@ sport-booking/
 - [ ] Test hai yêu cầu đặt cùng một khung giờ cùng lúc, chỉ một yêu cầu thành công
 
 ### Giai đoạn 11 – Bảo mật và tài liệu
-- [ ] Mọi truy vấn dùng tham số `?`, không nối chuỗi SQL (chống SQL injection)
-- [ ] Dữ liệu hiển thị ra HTML phải được escape (chống XSS)
-- [ ] Cookie session đặt `httpOnly`; thêm `helmet` và giới hạn số lần đăng nhập
-- [ ] Cập nhật README: ảnh chụp màn hình, tài khoản demo, hướng dẫn chạy
+- [x] Truy vấn dùng placeholders `?` cho dữ liệu đầu vào; mệnh đề SQL động chỉ được ghép từ các điều kiện cố định
+- [x] Dữ liệu động được render bằng `textContent`/DOM APIs, không chèn dữ liệu người dùng bằng HTML
+- [x] Cookie session đặt `httpOnly`, `sameSite`; cookie `Secure` trong production; thêm `helmet` và giới hạn số lần đăng nhập sai
+- [x] README có tài khoản demo, hướng dẫn chạy XAMPP, quy trình cọc/hoàn tiền và giữ chỗ hết hạn
 
 ---

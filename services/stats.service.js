@@ -53,6 +53,12 @@ function calculateStatistics({ month, payments, bookings, fields, openTime, clos
     if (payment.type === 'deposit' || payment.type === 'balance') {
       revenueByDay[dayIndex].revenue += amount;
     } else if (payment.type === 'refund') {
+      if (
+        Object.hasOwn(payment, 'recordedBy') &&
+        payment.recordedBy === null
+      ) {
+        return;
+      }
       revenueByDay[dayIndex].revenue -= amount;
     }
   });
@@ -141,7 +147,10 @@ async function getMonthlyStats(month) {
   const [paymentRows, bookingRows, fieldRows] = await Promise.all([
     pool.execute(
       `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS date,
-              type, SUM(amount) AS amount
+              type,
+              SUM(
+                CASE WHEN type = 'refund' AND recorded_by IS NULL THEN 0 ELSE amount END
+              ) AS amount
        FROM payments
        WHERE created_at >= ? AND created_at < ?
        GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d'), type

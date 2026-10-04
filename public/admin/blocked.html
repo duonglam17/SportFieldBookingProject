@@ -40,7 +40,7 @@
             <button class="button button-primary" type="submit">Tạo khóa sân</button>
           </div>
         </form>
-        <div id="booking-conflicts" class="conflict-list" hidden></div>
+        <div id="booking-conflicts" class="conflict-list" role="status" aria-live="polite" hidden></div>
       </section>
 
       <section class="admin-section admin-shell">
@@ -51,7 +51,7 @@
             <input id="blocked-list-date" type="date">
           </label>
         </div>
-        <div id="blocked-list" class="booking-list"></div>
+        <div id="blocked-list" class="booking-list" aria-live="polite">Đang tải danh sách khóa sân...</div>
       </section>
 
       <section class="admin-section admin-shell">
@@ -71,7 +71,7 @@
           <span><i class="legend-swatch slot-blocked"></i> Bị khóa</span>
           <span><i class="legend-swatch slot-maintenance"></i> Bảo trì</span>
         </div>
-        <div id="daily-schedule" class="schedule-grid-scroll">
+        <div id="daily-schedule" class="schedule-grid-scroll" aria-live="polite" aria-busy="true">
           <p class="muted">Đang tải lịch tổng...</p>
         </div>
       </section>

@@ -122,6 +122,8 @@ function startCountdowns() {
 async function loadMyBookings() {
   const upcoming = document.getElementById('upcoming-bookings');
   const past = document.getElementById('past-bookings');
+  upcoming.textContent = 'Đang tải lượt đặt...';
+  past.replaceChildren();
   try {
     const { data: bookings } = await apiFetch('/api/bookings/mine');
     upcoming.replaceChildren();
@@ -149,6 +151,8 @@ async function loadMyBookings() {
       window.location.replace(`/login.html?next=${encodeURIComponent(next)}`);
       return;
     }
+    upcoming.textContent = 'Không tải được danh sách lượt đặt.';
+    past.replaceChildren();
     setBookingsMessage(error.message, true);
   }
 }
@@ -158,5 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (createdId) {
     setBookingsMessage(`Đặt sân #${createdId} thành công. Hãy chuyển cọc trước khi hết hạn giữ chỗ.`, false);
   }
+  document.getElementById('upcoming-bookings').setAttribute('aria-live', 'polite');
+  document.getElementById('past-bookings').setAttribute('aria-live', 'polite');
   loadMyBookings();
 });

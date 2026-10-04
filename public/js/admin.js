@@ -14,7 +14,7 @@ function showAdminMessage(message, isError = false) {
 
 function populateSelect(select, options, valueField = 'id', labelField = 'name') {
   const previousValue = select.value;
-  select.innerHTML = '';
+  select.replaceChildren();
 
   options.forEach((option) => {
     const item = document.createElement('option');
@@ -26,9 +26,58 @@ function populateSelect(select, options, valueField = 'id', labelField = 'name')
   if (previousValue) {
     select.value = previousValue;
   }
+  select.disabled = options.length === 0;
+  if (options.length === 0) {
+    const item = document.createElement('option');
+    item.value = '';
+    item.textContent = 'Chưa có dữ liệu';
+    select.appendChild(item);
+  }
+}
+
+function appendTextCell(row, value) {
+  const cell = document.createElement('td');
+  cell.textContent = String(value ?? '—');
+  row.appendChild(cell);
+  return cell;
+}
+
+function createActionButton(label, action, id) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'button button-secondary admin-row-action';
+  button.dataset.action = action;
+  button.dataset.id = String(id);
+  button.textContent = label;
+  return button;
+}
+
+function appendEmptyRow(tbody, message, columns) {
+  const row = document.createElement('tr');
+  const cell = appendTextCell(row, message);
+  cell.colSpan = columns;
+  tbody.appendChild(row);
+}
+
+function showLoadFailure() {
+  appendEmptyRow(document.getElementById('field-table-body'), 'Không tải được danh sách sân.', 5);
+  appendEmptyRow(
+    document.getElementById('price-rule-table-body'),
+    'Không tải được bảng giá.',
+    6,
+  );
 }
 
 async function loadAdminData() {
+  showAdminMessage('Đang tải dữ liệu quản lý...');
+  document.getElementById('field-table-body').replaceChildren();
+  appendEmptyRow(document.getElementById('field-table-body'), 'Đang tải danh sách sân...', 5);
+  document.getElementById('price-rule-table-body').replaceChildren();
+  appendEmptyRow(
+    document.getElementById('price-rule-table-body'),
+    'Đang tải bảng giá...',
+    6,
+  );
   const [sportTypeResponse, fieldResponse, priceRuleResponse] = await Promise.all([
     apiFetch('/api/admin/sport-types'),
     apiFetch('/api/admin/fields'),
@@ -49,22 +98,30 @@ function renderFieldRows() {
   const tbody = document.getElementById('field-table-body');
   if (!tbody) return;
 
-  tbody.innerHTML = '';
+  tbody.replaceChildren();
+  if (adminState.fields.length === 0) {
+    appendEmptyRow(tbody, 'Chưa có sân nào được tạo.', 5);
+    return;
+  }
   adminState.fields.forEach((field) => {
     const row = document.createElement('tr');
     const sportTypeName = adminState.sportTypes.find((type) => type.id === field.sport_type_id)?.name || '—';
-
-    row.innerHTML = `
-      <td>${field.id}</td>
-      <td>${field.name}</td>
-      <td>${sportTypeName}</td>
-      <td>${field.status}</td>
-      <td>
-        <button type="button" data-action="edit-field" data-id="${field.id}">Sửa</button>
-        <button type="button" data-action="toggle-field" data-id="${field.id}">${field.status === 'active' ? 'Đặt maintenance' : 'Kích hoạt'}</button>
-        <button type="button" data-action="delete-field" data-id="${field.id}">Xóa</button>
-      </td>
-    `;
+    appendTextCell(row, field.id);
+    appendTextCell(row, field.name);
+    appendTextCell(row, sportTypeName);
+    appendTextCell(row, field.status);
+    const actions = document.createElement('td');
+    actions.className = 'admin-row-actions';
+    actions.append(
+      createActionButton('Sửa', 'edit-field', field.id),
+      createActionButton(
+        field.status === 'active' ? 'Đặt maintenance' : 'Kích hoạt',
+        'toggle-field',
+        field.id,
+      ),
+      createActionButton('Xóa', 'delete-field', field.id),
+    );
+    row.appendChild(actions);
     tbody.appendChild(row);
   });
 }
@@ -73,29 +130,36 @@ function renderPriceRows() {
   const tbody = document.getElementById('price-rule-table-body');
   if (!tbody) return;
 
-  tbody.innerHTML = '';
+  tbody.replaceChildren();
+  if (adminState.priceRules.length === 0) {
+    appendEmptyRow(tbody, 'Chưa có quy tắc giá nào được tạo.', 6);
+    return;
+  }
   adminState.priceRules.forEach((rule) => {
     const row = document.createElement('tr');
     const sportTypeName = adminState.sportTypes.find((type) => type.id === rule.sport_type_id)?.name || '—';
-
-    row.innerHTML = `
-      <td>${rule.id}</td>
-      <td>${sportTypeName}</td>
-      <td>${rule.day_type}</td>
-      <td>${rule.start_time} - ${rule.end_time}</td>
-      <td>${Number(rule.price_per_hour).toLocaleString('vi-VN')}đ</td>
-      <td>
-        <button type="button" data-action="edit-price" data-id="${rule.id}">Sửa</button>
-        <button type="button" data-action="delete-price" data-id="${rule.id}">Xóa</button>
-      </td>
-    `;
+    appendTextCell(row, rule.id);
+    appendTextCell(row, sportTypeName);
+    appendTextCell(row, rule.day_type);
+    appendTextCell(row, `${rule.start_time} - ${rule.end_time}`);
+    appendTextCell(row, `${Number(rule.price_per_hour).toLocaleString('vi-VN')}đ`);
+    const actions = document.createElement('td');
+    actions.className = 'admin-row-actions';
+    actions.append(
+      createActionButton('Sửa', 'edit-price', rule.id),
+      createActionButton('Xóa', 'delete-price', rule.id),
+    );
+    row.appendChild(actions);
     tbody.appendChild(row);
   });
 }
 
 async function handleFieldSubmit(event) {
   event.preventDefault();
-  const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const submitButton = form.querySelector('[type="submit"]');
+  submitButton.disabled = true;
+  const formData = new FormData(form);
   const id = formData.get('fieldId');
   const payload = {
     name: formData.get('name'),
@@ -110,26 +174,30 @@ async function handleFieldSubmit(event) {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
-      showAdminMessage('Cập nhật sân thành công.', false);
     } else {
       await apiFetch('/api/admin/fields', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      showAdminMessage('Thêm sân thành công.', false);
     }
 
-    event.currentTarget.reset();
+    form.reset();
     document.getElementById('field-id').value = '';
     await loadAdminData();
+    showAdminMessage(id ? 'Cập nhật sân thành công.' : 'Thêm sân thành công.', false);
   } catch (error) {
     showAdminMessage(error.message, true);
+  } finally {
+    submitButton.disabled = false;
   }
 }
 
 async function handlePriceRuleSubmit(event) {
   event.preventDefault();
-  const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const submitButton = form.querySelector('[type="submit"]');
+  submitButton.disabled = true;
+  const formData = new FormData(form);
   const id = formData.get('priceRuleId');
   const payload = {
     sportTypeId: Number(formData.get('sportTypeId')),
@@ -145,20 +213,21 @@ async function handlePriceRuleSubmit(event) {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
-      showAdminMessage('Cập nhật quy tắc giá thành công.', false);
     } else {
       await apiFetch('/api/admin/price-rules', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      showAdminMessage('Thêm quy tắc giá thành công.', false);
     }
 
-    event.currentTarget.reset();
+    form.reset();
     document.getElementById('price-rule-id').value = '';
     await loadAdminData();
+    showAdminMessage(id ? 'Cập nhật quy tắc giá thành công.' : 'Thêm quy tắc giá thành công.', false);
   } catch (error) {
     showAdminMessage(error.message, true);
+  } finally {
+    submitButton.disabled = false;
   }
 }
 
@@ -168,6 +237,7 @@ async function handleTableAction(event) {
 
   const { action, id } = button.dataset;
   if (!action || !id) return;
+  if (action !== 'edit-field' && action !== 'edit-price') button.disabled = true;
 
   try {
     if (action === 'edit-field') {
@@ -190,16 +260,16 @@ async function handleTableAction(event) {
         method: 'PATCH',
         body: JSON.stringify({ status: nextStatus }),
       });
-      showAdminMessage(`Đã đổi trạng thái sân thành ${nextStatus}.`, false);
       await loadAdminData();
+      showAdminMessage(`Đã đổi trạng thái sân thành ${nextStatus}.`, false);
       return;
     }
 
     if (action === 'delete-field') {
       if (!window.confirm('Bạn có chắc muốn xóa sân này?')) return;
       await apiFetch(`/api/admin/fields/${id}`, { method: 'DELETE' });
-      showAdminMessage('Xóa sân thành công.', false);
       await loadAdminData();
+      showAdminMessage('Xóa sân thành công.', false);
       return;
     }
 
@@ -219,11 +289,13 @@ async function handleTableAction(event) {
     if (action === 'delete-price') {
       if (!window.confirm('Bạn có chắc muốn xóa quy tắc giá này?')) return;
       await apiFetch(`/api/admin/price-rules/${id}`, { method: 'DELETE' });
-      showAdminMessage('Xóa quy tắc giá thành công.', false);
       await loadAdminData();
+      showAdminMessage('Xóa quy tắc giá thành công.', false);
     }
   } catch (error) {
     showAdminMessage(error.message, true);
+  } finally {
+    button.disabled = false;
   }
 }
 
@@ -236,6 +308,7 @@ async function initAdminPage() {
     }
 
     await loadAdminData();
+    showAdminMessage('');
     document.getElementById('field-form').addEventListener('submit', handleFieldSubmit);
     document.getElementById('price-rule-form').addEventListener('submit', handlePriceRuleSubmit);
     document.getElementById('field-reset').addEventListener('click', () => {
@@ -248,7 +321,12 @@ async function initAdminPage() {
     });
     document.addEventListener('click', handleTableAction);
   } catch (error) {
-    window.location.href = '/login.html';
+    if (error.status === 401 || error.status === 403) {
+      window.location.replace('/login.html');
+      return;
+    }
+    showLoadFailure();
+    showAdminMessage(error.message, true);
   }
 }
 
