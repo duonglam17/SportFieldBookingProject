@@ -6,33 +6,19 @@
 | Tính năng | File giao diện | Route | Controller/service (hàm) | Bảng DB | File test |
 |---|---|---|---|---|---|
 | Đăng ký | `public/register.html`, `public/js/api.js` | `POST /api/auth/register` | `auth.controller.register` | `users` | `tests/auth.test.js` |
-
 | Đăng nhập/đăng xuất | `public/login.html`, `public/js/api.js` | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | `auth.controller.login`, `logout`, `me` | `users`; session lưu `userId`, `role` | `tests/auth.test.js`, `tests/loginRateLimit.test.js` |
-
 | Ràng buộc mật khẩu | `public/register.html`, `public/js/api.js` | `POST /api/auth/register` | `auth.controller.register` | `users.password_hash` | `tests/auth.test.js` |
-
 | Phân quyền theo vai trò | `public/js/admin-nav.js`; các trang `public/admin/*.html` | `middleware/auth.js` áp dụng cho `/api/bookings`, `/api/admin/*` | `requireLogin`, `requireRole`; các controller được gắn trong route | `users.role` | `tests/auth.test.js`, `tests/booking.test.js` |
-
 | Chuyển hướng sau đăng nhập | `public/login.html`, `public/js/api.js`; kiểm soát trang admin tại `public/js/admin-nav.js` | Đăng nhập dùng `POST /api/auth/login`; trang admin xác thực qua `GET /api/auth/me` | `auth.controller.login`; client `initializeAuthForms`, `getSafeInternalRedirect`, `initializeAdminNavigation` | `users`; session | Chưa có test tự động giao diện redirect; kiểm tra browser thủ công |
-
 | Quản lý sân | `public/admin/fields.html`, `public/js/admin.js` | `GET/POST /api/admin/sport-types`, `PUT/DELETE /api/admin/sport-types/:id`; `GET/POST /api/admin/fields`, `PUT/DELETE /api/admin/fields/:id`, `PATCH /api/admin/fields/:id/status` | `admin.controller.getSportTypes`, `createSportType`, `updateSportType`, `deleteSportType`, `getFields`, `createField`, `updateField`, `toggleFieldStatus`, `deleteField` | `sport_types`, `fields`, `bookings` (kiểm tra lịch trước khi xóa sân) | Chưa có test riêng cho CRUD admin |
-
 | Bảng giá | `public/admin/fields.html`, `public/js/admin.js` | `GET/POST /api/admin/price-rules`, `PUT/DELETE /api/admin/price-rules/:id` | `admin.controller.getPriceRules`, `createPriceRule`, `updatePriceRule`, `deletePriceRule` | `price_rules`, `sport_types` | Chưa có test CRUD admin; tính giá có `tests/pricing.test.js` |
-
 | Kiểm tra sân trống | `public/index.html`, `public/schedule.html`, `public/js/home.js`, `public/js/schedule.js` | `GET /api/fields`, `GET /api/fields/available`, `GET /api/fields/:id/schedule` | `availability.service.validateTimeRange`, `isRangeFree`, `getFieldSchedule`, `findAvailableFields` | `fields`, `bookings`, `blocked_slots` | `tests/availability.test.js`, `tests/booking.test.js` |
-
 | Tính giá | `public/schedule.html`, `public/js/schedule.js`, `public/booking.html`, `public/js/booking.js` | `GET /api/price` | `pricing.service.calculatePrice`, `calculateDeposit`, `determineDayType` | `price_rules` | `tests/pricing.test.js` |
-
 | Đặt sân (transaction) | `public/booking.html`, `public/js/booking.js` | `POST /api/bookings` | `booking.controller.create` → `booking.service.createBooking` | `fields`, `bookings`, `price_rules`, `users` | `tests/booking.test.js` |
-
 | Giữ chỗ hết hạn | Không có giao diện riêng; thời hạn hiển thị tại `public/js/my-bookings.js` | Không có route riêng; job bắt đầu trong `server.js` | `expiry.job.startExpiryJob`, `expirePendingBookings` | `bookings.expires_at`, `bookings.status` | `tests/booking.test.js` |
-
 | Hủy lịch | `public/my-bookings.html`, `public/js/my-bookings.js` | `GET /api/bookings/mine`, `PATCH /api/bookings/:id/cancel` | `booking.controller.mine`, `cancel` → `booking.service.getMyBookings`, `cancelBooking` | `bookings`, `payments` (yêu cầu hoàn cọc) | `tests/booking.test.js` |
-
 | Thanh toán/cọc | `public/admin/bookings.html`, `public/js/admin-bookings.js`; khách xem hướng dẫn tại `public/js/my-bookings.js` | `POST /api/admin/bookings/:id/payments`, `PATCH /api/admin/bookings/:id/status` | `booking.controller.recordPayment`, `updateStatus` → `booking.service.recordBookingPayment`, `updateBookingStatus` | `payments`, `bookings`, `users` | `tests/booking.test.js` |
-
 | Khóa sân | `public/admin/blocked.html`, `public/js/admin-blocked.js` | `GET/POST /api/admin/blocked-slots`, `DELETE /api/admin/blocked-slots/:id`; lịch tổng `GET /api/admin/blocked-slots/schedule` | `blocked-slots.controller.list/create/remove/schedule` → `blocked-slots.service.getBlockedSlots`, `createBlockedSlot`, `deleteBlockedSlot`, `getDailySchedule` | `blocked_slots`, `bookings`, `fields`, `users` | `tests/blocked-slots.test.js` |
-
 | Thống kê | `public/admin/dashboard.html`, `public/js/admin-stats.js` | `GET /api/admin/stats?month=YYYY-MM` | `stats.controller.getMonthlyStats` → `stats.service.getMonthlyStats`, `calculateStatistics` | `payments`, `bookings`, `fields` | `tests/stats.test.js` |
 
 ### Luồng một request đăng nhập
