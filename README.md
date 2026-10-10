@@ -41,9 +41,7 @@
 | Supertest | Có trong `devDependencies`, dùng trong test | Gửi request tới app Express trong `tests/auth.test.js`, `tests/loginRateLimit.test.js` và test phân quyền ở `tests/booking.test.js`. |
 | Node.js `--watch` | Script `dev` trong `package.json` | `npm run dev` chạy `node --watch server.js`; đây là cách thay `nodemon` hiện tại. |
 | Chart.js | Nạp CDN trong `public/admin/dashboard.html` | Vẽ doanh thu theo ngày và lượt đặt theo giờ trong `public/js/admin-stats.js`. |
----
 
-## Kiểm thử kết hợp nhiều công cụ
 
 ### Công cụ đang có
 
